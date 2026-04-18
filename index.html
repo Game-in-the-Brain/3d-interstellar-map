@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>3D Interstellar Map</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="glcanvas"></canvas>
+
+      <!-- Cross-linking panel -->
+      <div id="crosslinks" class="crosslink-panel">
+        <div class="panel-header">
+          <button id="btn-collapse-links" class="btn panel-toggle" aria-label="Close links" title="Close links">✕</button>
+        </div>
+        <div class="crosslink-row">
+          <a href="https://game-in-the-brain.github.io/Mneme-CE-World-Generator/" target="_blank" rel="noopener noreferrer" class="btn crosslink-btn" style="width: 100%; text-decoration: none; display: inline-block; text-align: center;">🌍 World Generator</a>
+        </div>
+        <div class="crosslink-row">
+          <a href="https://game-in-the-brain.github.io/2d-star-system-map/" target="_blank" rel="noopener noreferrer" class="btn crosslink-btn" style="width: 100%; text-decoration: none; display: inline-block; text-align: center;">🗺️ 2D System Map</a>
+        </div>
+      </div>
+      <button id="btn-expand-links" class="panel-fab" aria-label="Open links" title="Open links" style="display:none">🔗</button>
+    </div>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

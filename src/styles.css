@@ -1,0 +1,151 @@
+/* 3D Interstellar Map — Space theme */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #050508;
+  color: #e5e7eb;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  touch-action: none;
+}
+
+#glcanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Cross-link panel */
+.crosslink-panel {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  max-width: 220px;
+  user-select: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.crosslink-panel.collapsed {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
+}
+
+.panel-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: -4px;
+}
+
+.panel-toggle {
+  padding: 4px 6px;
+  font-size: 12px;
+  line-height: 1;
+  border-radius: 6px;
+  min-width: 24px;
+  background: rgba(255, 255, 255, 0.08);
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e5e7eb;
+  cursor: pointer;
+  text-align: center;
+}
+
+.panel-toggle:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.panel-fab {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  appearance: none;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  background: rgba(10, 15, 30, 0.9);
+  color: #ffffff;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.panel-fab:hover {
+  background: rgba(30, 40, 70, 0.95);
+  transform: scale(1.05);
+}
+
+.panel-fab:active {
+  transform: scale(0.95);
+}
+
+.crosslink-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e5e7eb;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.05s ease;
+  min-width: 32px;
+  text-align: center;
+}
+
+.btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.crosslink-btn {
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 360px) {
+  .crosslink-panel {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    max-width: none;
+    padding: 10px;
+  }
+  .panel-fab {
+    top: 8px;
+    left: 8px;
+  }
+}
