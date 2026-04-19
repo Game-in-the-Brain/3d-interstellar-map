@@ -20,7 +20,7 @@ let selectionManager: SelectionManager | null = null;
 
 const catalogues: Record<CatalogueKey, Star[]> = { '10pc': [], '50pc': [], '100pc': [] };
 let currentCatalogue: CatalogueKey = '10pc';
-let starCount = 200;
+let starCount = 20;
 let renderMode: RenderMode = 'points';
 let sphereScale = 1.0;
 let unit: 'pc' | 'ly' = 'pc';

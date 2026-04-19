@@ -81,8 +81,8 @@ export function setupUI(
       <input id="sphere-scale" type="range" min="0.3" max="3.0" step="0.1" value="1.0" />
     </div>
     <div class="control-row">
-      <label>Stars <span id="slider-val">200</span></label>
-      <input id="star-slider" type="range" min="10" max="200" value="200" />
+      <label>Stars <span id="slider-val">20</span></label>
+      <input id="star-slider" type="range" min="10" max="200" value="20" />
     </div>
     <div class="control-row">
       <button id="unit-toggle" class="ui-btn">Show ly</button>
