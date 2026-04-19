@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import type { Star, CatalogueKey, MapState } from './types';
+import type { Star, CatalogueKey, MapState, AppMode, GenerationParameters, GeneratedStar } from './types';
 import type { MnemeSystemExport } from './mnemeSystem';
 import { isMnemeSystemExport } from './mnemeSystem';
+import { generateStarMap, DENSITY_PRESETS } from './generator';
 import { createStarfield } from './starfield';
 import { StarRenderer, createSolMarker, type RenderMode } from './stars';
 import { createCompassContainer, updateCompass } from './compass';
@@ -17,7 +18,7 @@ import {
   hideContextPanel,
 } from './ui';
 
-const VERSION = '0.1.2';
+const VERSION = '0.1.3';
 
 let scene: THREE.Scene;
 let camera: THREE.PerspectiveCamera;
@@ -31,6 +32,10 @@ let selectionManager: SelectionManager | null = null;
 const catalogues: Record<CatalogueKey, Star[]> = { '10pc': [], '50pc': [], '100pc': [] };
 let currentCatalogue: CatalogueKey = '10pc';
 let starCount = 20;
+
+// App mode
+let appMode: AppMode = 'hyg';
+let generatedStars: GeneratedStar[] = [];
 let renderMode: RenderMode = 'points';
 let sphereScale = 1.0;
 let brightness = 1.0;
@@ -69,8 +74,16 @@ function getMaxStars(): number {
 }
 
 function rebuildStars(): void {
-  const stars = catalogues[currentCatalogue];
-  const count = Math.min(starCount, stars.length);
+  let stars: Star[];
+  let count: number;
+
+  if (appMode === 'generate') {
+    stars = generatedStars;
+    count = generatedStars.length;
+  } else {
+    stars = catalogues[currentCatalogue];
+    count = Math.min(starCount, stars.length);
+  }
 
   if (currentRenderer) {
     scene.remove(currentRenderer.group);
@@ -470,6 +483,41 @@ function buildMapState(): MapState {
   };
 }
 
+function onModeChange(mode: AppMode): void {
+  appMode = mode;
+  // Update UI visibility
+  if (ui) {
+    const hygControls = document.getElementById('hyg-controls');
+    const generateControls = document.getElementById('generate-controls');
+    if (hygControls) hygControls.style.display = mode === 'hyg' ? 'block' : 'none';
+    if (generateControls) generateControls.style.display = mode === 'generate' ? 'block' : 'none';
+    ui.hygModeBtn.classList.toggle('active-mode', mode === 'hyg');
+    ui.generateModeBtn.classList.toggle('active-mode', mode === 'generate');
+  }
+  // Rebuild stars for the new mode
+  if (mode === 'generate' && generatedStars.length === 0) {
+    // Auto-generate on first switch if empty
+    const params = DENSITY_PRESETS.average;
+    generatedStars = generateStarMap(params);
+  }
+  rebuildStars();
+}
+
+function onGenerate(params: GenerationParameters): void {
+  appMode = 'generate';
+  generatedStars = generateStarMap(params);
+  rebuildStars();
+  // Update UI to reflect generate mode
+  if (ui) {
+    const hygControls = document.getElementById('hyg-controls');
+    const generateControls = document.getElementById('generate-controls');
+    if (hygControls) hygControls.style.display = 'none';
+    if (generateControls) generateControls.style.display = 'block';
+    ui.hygModeBtn.classList.remove('active-mode');
+    ui.generateModeBtn.classList.add('active-mode');
+  }
+}
+
 function onSaveMap(saveAs: boolean): void {
   const state = buildMapState();
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
@@ -663,6 +711,7 @@ function init(): void {
   // UI
   ui = setupUI(
     VERSION,
+    appMode,
     onStarCountChange,
     onCatalogueChange,
     onRenderModeChange,
@@ -676,7 +725,9 @@ function init(): void {
     onLoadMap,
     onExportStars,
     onImportStars,
-    onClear
+    onClear,
+    onModeChange,
+    onGenerate
   );
 
   // Events

@@ -1,4 +1,4 @@
-import type { CatalogueKey } from './types';
+import type { CatalogueKey, AppMode, GenerationParameters } from './types';
 import type { RenderMode } from './stars';
 
 export interface UIElements {
@@ -35,6 +35,18 @@ export interface UIElements {
   contextCloseBtn: HTMLButtonElement;
   suggestion: HTMLElement;
   controlsPanel: HTMLElement;
+  /** Mode toggle buttons */
+  hygModeBtn: HTMLButtonElement;
+  generateModeBtn: HTMLButtonElement;
+  /** Generation controls */
+  generateBtn: HTMLButtonElement;
+  densitySelect: HTMLSelectElement;
+  passesSlider: HTMLInputElement;
+  passesValue: HTMLElement;
+  distMultSlider: HTMLInputElement;
+  distMultValue: HTMLElement;
+  countMultSlider: HTMLInputElement;
+  countMultValue: HTMLElement;
 }
 
 function createPanel(id: string, title: string, collapsedDefault: boolean): HTMLElement {
@@ -58,6 +70,7 @@ function createPanel(id: string, title: string, collapsedDefault: boolean): HTML
 
 export function setupUI(
   version: string,
+  appMode: AppMode,
   onStarCountChange: (n: number) => void,
   onCatalogueChange: (key: CatalogueKey) => void,
   onRenderModeChange: (mode: RenderMode) => void,
@@ -71,7 +84,9 @@ export function setupUI(
   onLoadMap: (file: File) => void,
   onExportStars: () => void,
   onImportStars: (file: File) => void,
-  onClear: () => void
+  onClear: () => void,
+  onModeChange: (mode: AppMode) => void,
+  onGenerate: (params: GenerationParameters) => void
 ): UIElements {
   const app = document.getElementById('app')!;
 
@@ -85,15 +100,58 @@ export function setupUI(
   const controlsPanel = createPanel('controls-panel', 'Controls', false);
   controlsPanel.classList.add('controls-panel-pos');
   const controlsBody = controlsPanel.querySelector('.panel-body') as HTMLElement;
+  const isHyg = appMode === 'hyg';
   controlsBody.innerHTML = `
-    <div class="control-row">
-      <label>Catalogue</label>
-      <select id="cat-select" class="ui-select">
-        <option value="10pc" selected>HYG v4.1 — 10 pc</option>
-        <option value="50pc">HYG v4.1 — 50 pc</option>
-        <option value="100pc">HYG v4.1 — 100 pc</option>
-      </select>
+    <!-- Mode Toggle -->
+    <div class="control-row row-horizontal">
+      <button id="hyg-mode-btn" class="ui-btn ${isHyg ? 'active-mode' : ''}">📂 HYG</button>
+      <button id="generate-mode-btn" class="ui-btn ${!isHyg ? 'active-mode' : ''}">⭐ Generate</button>
     </div>
+
+    <!-- HYG Mode Controls -->
+    <div id="hyg-controls" style="display:${isHyg ? 'block' : 'none'}">
+      <div class="control-row">
+        <label>Catalogue</label>
+        <select id="cat-select" class="ui-select">
+          <option value="10pc" selected>HYG v4.1 — 10 pc</option>
+          <option value="50pc">HYG v4.1 — 50 pc</option>
+          <option value="100pc">HYG v4.1 — 100 pc</option>
+        </select>
+      </div>
+      <div class="control-row">
+        <label>Stars <span id="slider-val">20</span></label>
+        <input id="star-slider" type="range" min="10" max="200" value="20" />
+      </div>
+    </div>
+
+    <!-- Generate Mode Controls -->
+    <div id="generate-controls" style="display:${!isHyg ? 'block' : 'none'}">
+      <div class="control-row">
+        <label>Density</label>
+        <select id="density-select" class="ui-select">
+          <option value="sparse">Sparse (1D3, 2D6 ly)</option>
+          <option value="average" selected>Average (1D6, 3D6 ly)</option>
+          <option value="dense">Dense (1D6+2, 4D6 ly)</option>
+        </select>
+      </div>
+      <div class="control-row">
+        <label>Max Passes <span id="passes-val">3</span></label>
+        <input id="passes-slider" type="range" min="1" max="5" step="1" value="3" />
+      </div>
+      <div class="control-row">
+        <label>Distance Multiplier <span id="dist-mult-val">2.0</span></label>
+        <input id="dist-mult-slider" type="range" min="1.5" max="3.0" step="0.5" value="2.0" />
+      </div>
+      <div class="control-row">
+        <label>Count Multiplier <span id="count-mult-val">1.0</span></label>
+        <input id="count-mult-slider" type="range" min="1.0" max="2.0" step="0.5" value="1.0" />
+      </div>
+      <div class="control-row">
+        <button id="generate-btn" class="ui-btn" style="width:100%; background:#2a5a3a; color:#fff">🎲 Generate New Map</button>
+      </div>
+    </div>
+
+    <!-- Common Controls (both modes) -->
     <div class="control-row">
       <label>Render</label>
       <select id="render-mode" class="ui-select">
@@ -108,10 +166,6 @@ export function setupUI(
     <div class="control-row">
       <label>Brightness <span id="brightness-val">1.0</span></label>
       <input id="brightness" type="range" min="0.5" max="2.0" step="0.1" value="1.0" />
-    </div>
-    <div class="control-row">
-      <label>Stars <span id="slider-val">20</span></label>
-      <input id="star-slider" type="range" min="10" max="200" value="20" />
     </div>
     <div class="control-row row-horizontal">
       <button id="name-toggle" class="ui-btn">Show names</button>
@@ -194,6 +248,17 @@ export function setupUI(
   suggestion.className = 'suggestion-toast';
   suggestion.textContent = 'You can render more stars';
   app.appendChild(suggestion);
+
+  const hygModeBtn = document.getElementById('hyg-mode-btn') as HTMLButtonElement;
+  const generateModeBtn = document.getElementById('generate-mode-btn') as HTMLButtonElement;
+  const generateBtn = document.getElementById('generate-btn') as HTMLButtonElement;
+  const densitySelect = document.getElementById('density-select') as HTMLSelectElement;
+  const passesSlider = document.getElementById('passes-slider') as HTMLInputElement;
+  const passesValue = document.getElementById('passes-val') as HTMLElement;
+  const distMultSlider = document.getElementById('dist-mult-slider') as HTMLInputElement;
+  const distMultValue = document.getElementById('dist-mult-val') as HTMLElement;
+  const countMultSlider = document.getElementById('count-mult-slider') as HTMLInputElement;
+  const countMultValue = document.getElementById('count-mult-val') as HTMLElement;
 
   const starSlider = document.getElementById('star-slider') as HTMLInputElement;
   const starSliderValue = document.getElementById('slider-val') as HTMLElement;
@@ -306,6 +371,40 @@ export function setupUI(
     contextPanel.style.display = 'none';
   });
 
+  // Mode toggle
+  hygModeBtn.addEventListener('click', () => {
+    if (appMode !== 'hyg') onModeChange('hyg');
+  });
+
+  generateModeBtn.addEventListener('click', () => {
+    if (appMode !== 'generate') onModeChange('generate');
+  });
+
+  // Generation parameter listeners
+  passesSlider.addEventListener('input', () => {
+    passesValue.textContent = passesSlider.value;
+  });
+
+  distMultSlider.addEventListener('input', () => {
+    distMultValue.textContent = parseFloat(distMultSlider.value).toFixed(1);
+  });
+
+  countMultSlider.addEventListener('input', () => {
+    countMultValue.textContent = parseFloat(countMultSlider.value).toFixed(1);
+  });
+
+  generateBtn.addEventListener('click', () => {
+    const params: GenerationParameters = {
+      density: densitySelect.value as 'sparse' | 'average' | 'dense' | 'custom',
+      starCountDice: 6,
+      distanceDice: densitySelect.value === 'sparse' ? 2 : densitySelect.value === 'dense' ? 4 : 3,
+      distanceMultiplier: parseFloat(distMultSlider.value),
+      starCountMultiplier: parseFloat(countMultSlider.value),
+      maxPasses: parseInt(passesSlider.value, 10),
+    };
+    onGenerate(params);
+  });
+
   return {
     versionBadge,
     fpsMeter,
@@ -340,6 +439,16 @@ export function setupUI(
     contextCloseBtn,
     suggestion,
     controlsPanel,
+    hygModeBtn,
+    generateModeBtn,
+    generateBtn,
+    densitySelect,
+    passesSlider,
+    passesValue,
+    distMultSlider,
+    distMultValue,
+    countMultSlider,
+    countMultValue,
   };
 }
 

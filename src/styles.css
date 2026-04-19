@@ -164,6 +164,12 @@ html, body, #app {
   background: rgba(239, 68, 68, 0.25);
 }
 
+.ui-btn.active-mode {
+  background: rgba(96, 165, 250, 0.25);
+  border-color: rgba(96, 165, 250, 0.5);
+  color: #93c5fd;
+}
+
 .file-btn {
   display: inline-flex;
   cursor: pointer;

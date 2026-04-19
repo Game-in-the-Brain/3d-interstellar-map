@@ -10,6 +10,31 @@ export interface Star {
 
 export type CatalogueKey = '10pc' | '50pc' | '100pc';
 
+export type AppMode = 'hyg' | 'generate';
+
+export interface GeneratedStar extends Star {
+  pass: number;
+  parentId: string | null;
+  rolls: {
+    classRoll: number;
+    gradeRoll: number;
+    xyRoll: number;
+    zRoll: number;
+    distanceRoll: number;
+  };
+  distanceFromParent: number;
+  hasMwgSystem: boolean;
+}
+
+export interface GenerationParameters {
+  density: 'sparse' | 'average' | 'dense' | 'custom';
+  starCountDice: number;
+  distanceDice: number;
+  distanceMultiplier: number;
+  starCountMultiplier: number;
+  maxPasses: number;
+}
+
 export interface AppState {
   selectedStarIds: Set<string>;
   starCount: number;
