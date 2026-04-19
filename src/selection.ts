@@ -11,6 +11,7 @@ export interface PointerResult {
 
 export class SelectionManager {
   selectedIds: Set<string> = new Set();
+  lockSelection = false;
   private linesGroup: THREE.Group;
   private raycaster = new THREE.Raycaster();
   private mouse = new THREE.Vector2();
@@ -84,12 +85,21 @@ export class SelectionManager {
     this.lastClickStarId = starId;
 
     if (starId) {
-      if (this.selectedIds.has(starId)) {
-        this.selectedIds.delete(starId);
+      if (this.lockSelection) {
+        // Lock mode: always add, never remove
+        if (!this.selectedIds.has(starId)) {
+          this.selectedIds.add(starId);
+          this.updateLines();
+        }
       } else {
-        this.selectedIds.add(starId);
+        // Toggle mode
+        if (this.selectedIds.has(starId)) {
+          this.selectedIds.delete(starId);
+        } else {
+          this.selectedIds.add(starId);
+        }
+        this.updateLines();
       }
-      this.updateLines();
       return { handled: true, starId, isDouble: false, isRightClick: false };
     }
 

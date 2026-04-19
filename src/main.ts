@@ -293,6 +293,12 @@ function onUnitToggle(): void {
   updateSelectionUI();
 }
 
+function onLockToggle(locked: boolean): void {
+  if (selectionManager) {
+    selectionManager.lockSelection = locked;
+  }
+}
+
 function exportSingleStar(star: Star): void {
   const blob = new Blob([JSON.stringify(star, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -470,6 +476,7 @@ function init(): void {
     onBrightnessChange,
     onNameToggle,
     onUnitToggle,
+    onLockToggle,
     onExport,
     onImport,
     onClear

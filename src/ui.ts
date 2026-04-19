@@ -15,6 +15,7 @@ export interface UIElements {
   brightnessValue: HTMLElement;
   nameToggle: HTMLButtonElement;
   unitToggle: HTMLButtonElement;
+  lockToggle: HTMLButtonElement;
   exportBtn: HTMLButtonElement;
   importBtn: HTMLInputElement;
   selectionPanel: HTMLElement;
@@ -59,6 +60,7 @@ export function setupUI(
   onBrightnessChange: (brightness: number) => void,
   onNameToggle: (show: boolean) => void,
   onUnitToggle: () => void,
+  onLockToggle: (locked: boolean) => void,
   onExport: () => void,
   onImport: (file: File) => void,
   onClear: () => void
@@ -106,6 +108,9 @@ export function setupUI(
     <div class="control-row row-horizontal">
       <button id="name-toggle" class="ui-btn">Show names</button>
       <button id="unit-toggle" class="ui-btn">Show ly</button>
+    </div>
+    <div class="control-row">
+      <button id="lock-toggle" class="ui-btn">🔓 Unlock selection</button>
     </div>
     <div class="control-row row-horizontal">
       <button id="export-btn" class="ui-btn">Export JSON</button>
@@ -175,6 +180,7 @@ export function setupUI(
   const brightnessValue = document.getElementById('brightness-val') as HTMLElement;
   const nameToggle = document.getElementById('name-toggle') as HTMLButtonElement;
   const unitToggle = document.getElementById('unit-toggle') as HTMLButtonElement;
+  const lockToggle = document.getElementById('lock-toggle') as HTMLButtonElement;
   const exportBtn = document.getElementById('export-btn') as HTMLButtonElement;
   const importBtn = document.getElementById('import-btn') as HTMLInputElement;
   const fpsMeter = document.getElementById('fps-meter') as HTMLElement;
@@ -225,6 +231,12 @@ export function setupUI(
     onUnitToggle();
   });
 
+  lockToggle.addEventListener('click', () => {
+    const locked = lockToggle.textContent?.includes('🔒') ?? false;
+    lockToggle.textContent = locked ? '🔓 Unlock selection' : '🔒 Lock selection';
+    onLockToggle(!locked);
+  });
+
   exportBtn.addEventListener('click', () => {
     onExport();
   });
@@ -263,6 +275,7 @@ export function setupUI(
     selectionList,
     selectionWarning,
     clearBtn,
+    lockToggle,
     contextPanel,
     contextTitle,
     contextJson,

@@ -141,9 +141,30 @@ Selection connects every unique pair of stars with `THREE.LineSegments`. This is
 
 ---
 
+### QA-006
+
+**Title:** Lock-selection toggle for tablet/phone additive selection  
+**Area:** UX (Mobile)  
+**Priority:** 🟡 Low  
+**Status:** ✅ Closed  
+**File(s):** `src/selection.ts`, `src/ui.ts`, `src/main.ts`
+
+**Description:**  
+On desktop, multi-select without deselecting is done via Shift-click. On tablets and phones there is no Shift key, so users need an alternative way to build a selection set without accidentally toggling stars off.
+
+**Implemented Solution:**
+- [x] **"🔓 Unlock selection / 🔒 Lock selection"** toggle button in the Controls panel
+- [x] **Unlocked mode (default):** tapping a selected star deselects it (normal toggle behaviour)
+- [x] **Locked mode:** tapping any star always **adds** it to the selection; existing selections are never removed
+- [x] The **Clear** button still works in both modes to remove all selections
+- [x] Visual state of the button changes to indicate current mode
+
+---
+
 ## Document History
 
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2026-04-15 | Initial QA document — 4 open items, all spec-only |
 | 1.1 | 2026-04-19 | Closed QA-001, QA-002, QA-004. Added QA-005 (selection crash guard). |
+| 1.2 | 2026-04-19 | Added QA-006 (lock-selection toggle for mobile/tablet). |

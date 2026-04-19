@@ -59,6 +59,7 @@ A lightweight, offline-capable 3D star map showing Sol and nearby real stars out
 | **Stars** | Slider to limit how many stars are rendered (default 20) |
 | **Show names / Hide names** | Toggle star name labels projected onto the 3D view |
 | **Show pc / Show ly** | Toggle distance unit between parsecs and light-years |
+| **🔓 Unlock / 🔒 Lock selection** | **Lock** = tapping stars always adds them (never removes). For phone/tablet multi-select without a Shift key. |
 | **Export JSON** | Download the current selection (or all visible if none selected) as JSON |
 | **Import JSON** | Load a custom star catalogue from a JSON file |
 
