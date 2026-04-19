@@ -11,11 +11,22 @@ export interface UIElements {
   sphereScaleSlider: HTMLInputElement;
   sphereScaleValue: HTMLElement;
   sphereScaleRow: HTMLElement;
+  brightnessSlider: HTMLInputElement;
+  brightnessValue: HTMLElement;
+  nameToggle: HTMLButtonElement;
   unitToggle: HTMLButtonElement;
+  exportBtn: HTMLButtonElement;
+  importBtn: HTMLInputElement;
   selectionPanel: HTMLElement;
   selectionList: HTMLElement;
   selectionWarning: HTMLElement;
   clearBtn: HTMLButtonElement;
+  contextPanel: HTMLElement;
+  contextTitle: HTMLElement;
+  contextJson: HTMLElement;
+  context2dLink: HTMLAnchorElement;
+  contextExportBtn: HTMLButtonElement;
+  contextCloseBtn: HTMLButtonElement;
   suggestion: HTMLElement;
   controlsPanel: HTMLElement;
 }
@@ -45,7 +56,11 @@ export function setupUI(
   onCatalogueChange: (key: CatalogueKey) => void,
   onRenderModeChange: (mode: RenderMode) => void,
   onSphereScaleChange: (scale: number) => void,
+  onBrightnessChange: (brightness: number) => void,
+  onNameToggle: (show: boolean) => void,
   onUnitToggle: () => void,
+  onExport: () => void,
+  onImport: (file: File) => void,
   onClear: () => void
 ): UIElements {
   const app = document.getElementById('app')!;
@@ -64,9 +79,9 @@ export function setupUI(
     <div class="control-row">
       <label>Catalogue</label>
       <select id="cat-select" class="ui-select">
-        <option value="10pc" selected>10 pc</option>
-        <option value="50pc">50 pc</option>
-        <option value="100pc">100 pc</option>
+        <option value="10pc" selected>HYG v4.1 — 10 pc</option>
+        <option value="50pc">HYG v4.1 — 50 pc</option>
+        <option value="100pc">HYG v4.1 — 100 pc</option>
       </select>
     </div>
     <div class="control-row">
@@ -81,11 +96,23 @@ export function setupUI(
       <input id="sphere-scale" type="range" min="0.3" max="3.0" step="0.1" value="1.0" />
     </div>
     <div class="control-row">
+      <label>Brightness <span id="brightness-val">1.0</span></label>
+      <input id="brightness" type="range" min="0.5" max="2.0" step="0.1" value="1.0" />
+    </div>
+    <div class="control-row">
       <label>Stars <span id="slider-val">20</span></label>
       <input id="star-slider" type="range" min="10" max="200" value="20" />
     </div>
-    <div class="control-row">
+    <div class="control-row row-horizontal">
+      <button id="name-toggle" class="ui-btn">Show names</button>
       <button id="unit-toggle" class="ui-btn">Show ly</button>
+    </div>
+    <div class="control-row row-horizontal">
+      <button id="export-btn" class="ui-btn">Export JSON</button>
+      <label class="ui-btn file-btn">
+        Import JSON
+        <input id="import-btn" type="file" accept=".json" style="display:none" />
+      </label>
     </div>
     <div class="control-row">
       <div id="fps-meter" class="fps-green">-- FPS</div>
@@ -104,6 +131,32 @@ export function setupUI(
   `;
   app.appendChild(selectionPanel);
 
+  // Context / detail panel (centered floating)
+  const contextPanel = document.createElement('div');
+  contextPanel.id = 'context-panel';
+  contextPanel.className = 'context-panel';
+  contextPanel.style.display = 'none';
+  contextPanel.innerHTML = `
+    <div class="context-header">
+      <span id="context-title" class="context-title">Star Details</span>
+      <button id="context-close" class="panel-toggle" aria-label="Close details">✕</button>
+    </div>
+    <div class="context-body">
+      <pre id="context-json" class="context-json"></pre>
+      <div class="context-actions">
+        <a id="context-2d-link" href="#" target="_blank" rel="noopener noreferrer" class="btn crosslink-btn" style="width:auto">🗺️ Open 2D Map</a>
+        <button id="context-export" class="ui-btn">💾 Export this star</button>
+      </div>
+    </div>
+  `;
+  app.appendChild(contextPanel);
+
+  // Name labels container
+  const labelsContainer = document.createElement('div');
+  labelsContainer.id = 'star-labels';
+  labelsContainer.className = 'star-labels-container';
+  app.appendChild(labelsContainer);
+
   // Suggestion toast
   const suggestion = document.createElement('div');
   suggestion.id = 'perf-suggestion';
@@ -118,11 +171,21 @@ export function setupUI(
   const sphereScaleSlider = document.getElementById('sphere-scale') as HTMLInputElement;
   const sphereScaleValue = document.getElementById('sphere-scale-val') as HTMLElement;
   const sphereScaleRow = document.getElementById('sphere-scale-row') as HTMLElement;
+  const brightnessSlider = document.getElementById('brightness') as HTMLInputElement;
+  const brightnessValue = document.getElementById('brightness-val') as HTMLElement;
+  const nameToggle = document.getElementById('name-toggle') as HTMLButtonElement;
   const unitToggle = document.getElementById('unit-toggle') as HTMLButtonElement;
+  const exportBtn = document.getElementById('export-btn') as HTMLButtonElement;
+  const importBtn = document.getElementById('import-btn') as HTMLInputElement;
   const fpsMeter = document.getElementById('fps-meter') as HTMLElement;
   const selectionList = document.getElementById('selection-list') as HTMLElement;
   const selectionWarning = document.getElementById('selection-warning') as HTMLElement;
   const clearBtn = document.getElementById('clear-btn') as HTMLButtonElement;
+  const contextTitle = document.getElementById('context-title') as HTMLElement;
+  const contextJson = document.getElementById('context-json') as HTMLElement;
+  const context2dLink = document.getElementById('context-2d-link') as HTMLAnchorElement;
+  const contextExportBtn = document.getElementById('context-export') as HTMLButtonElement;
+  const contextCloseBtn = document.getElementById('context-close') as HTMLButtonElement;
 
   starSlider.addEventListener('input', () => {
     const n = parseInt(starSlider.value, 10);
@@ -146,12 +209,38 @@ export function setupUI(
     onSphereScaleChange(val);
   });
 
+  brightnessSlider.addEventListener('input', () => {
+    const val = parseFloat(brightnessSlider.value);
+    brightnessValue.textContent = val.toFixed(1);
+    onBrightnessChange(val);
+  });
+
+  nameToggle.addEventListener('click', () => {
+    const showing = nameToggle.textContent === 'Hide names';
+    nameToggle.textContent = showing ? 'Show names' : 'Hide names';
+    onNameToggle(!showing);
+  });
+
   unitToggle.addEventListener('click', () => {
     onUnitToggle();
   });
 
+  exportBtn.addEventListener('click', () => {
+    onExport();
+  });
+
+  importBtn.addEventListener('change', () => {
+    const file = importBtn.files?.[0];
+    if (file) onImport(file);
+    importBtn.value = '';
+  });
+
   clearBtn.addEventListener('click', () => {
     onClear();
+  });
+
+  contextCloseBtn.addEventListener('click', () => {
+    contextPanel.style.display = 'none';
   });
 
   return {
@@ -164,11 +253,22 @@ export function setupUI(
     sphereScaleSlider,
     sphereScaleValue,
     sphereScaleRow,
+    brightnessSlider,
+    brightnessValue,
+    nameToggle,
     unitToggle,
+    exportBtn,
+    importBtn,
     selectionPanel,
     selectionList,
     selectionWarning,
     clearBtn,
+    contextPanel,
+    contextTitle,
+    contextJson,
+    context2dLink,
+    contextExportBtn,
+    contextCloseBtn,
     suggestion,
     controlsPanel,
   };
@@ -195,4 +295,20 @@ export function updateSelectionWarning(el: HTMLElement, count: number): void {
     el.style.display = 'none';
     el.textContent = '';
   }
+}
+
+export function populateContextPanel(
+  ui: UIElements,
+  star: { id: string; name: string; x: number; y: number; z: number; spec: string; absMag: number },
+  onExportOne: () => void
+): void {
+  ui.contextTitle.textContent = star.name || `Star ${star.id}`;
+  ui.contextJson.textContent = JSON.stringify(star, null, 2);
+  ui.context2dLink.href = `https://game-in-the-brain.github.io/2d-star-system-map/?starId=${encodeURIComponent(star.id)}`;
+  ui.contextExportBtn.onclick = onExportOne;
+  ui.contextPanel.style.display = 'block';
+}
+
+export function hideContextPanel(ui: UIElements): void {
+  ui.contextPanel.style.display = 'none';
 }

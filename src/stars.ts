@@ -34,17 +34,19 @@ export class StarRenderer {
   private stars: Star[];
   count: number;
   private sphereScale: number;
+  private brightness: number;
   private selectedIds: Set<string> = new Set();
   private pointsMesh: THREE.Points | null = null;
   private instancedMesh: THREE.InstancedMesh | null = null;
   private pointSizes: Float32Array | null = null;
   private pointColors: Float32Array | null = null;
 
-  constructor(stars: Star[], count: number, mode: RenderMode, sphereScale: number = 1.0) {
+  constructor(stars: Star[], count: number, mode: RenderMode, sphereScale: number = 1.0, brightness: number = 1.0) {
     this.stars = stars;
     this.count = Math.min(count, stars.length);
     this.mode = mode;
     this.sphereScale = sphereScale;
+    this.brightness = brightness;
     this.group = new THREE.Group();
     this.build();
   }
@@ -67,6 +69,14 @@ export class StarRenderer {
     }
   }
 
+  setBrightness(brightness: number): void {
+    if (this.brightness === brightness) return;
+    this.brightness = brightness;
+    this.dispose();
+    this.build();
+    this.applySelection();
+  }
+
   setSelection(selectedIds: Set<string>): void {
     this.selectedIds = new Set(selectedIds);
     this.applySelection();
@@ -79,8 +89,12 @@ export class StarRenderer {
     return null;
   }
 
+  getStarById(id: string): Star | undefined {
+    return this.stars.find((s, i) => i < this.count && s.id === id);
+  }
+
   getPositionById(id: string): THREE.Vector3 | undefined {
-    const star = this.stars.find((s, i) => i < this.count && s.id === id);
+    const star = this.getStarById(id);
     if (!star) return undefined;
     return new THREE.Vector3(pcToScene(star.x), pcToScene(star.y), pcToScene(star.z));
   }
@@ -104,7 +118,7 @@ export class StarRenderer {
         const star = this.stars[i];
         const isSelected = this.selectedIds.has(star.id);
         const baseSize = this.absMagToPointSize(star.absMag);
-        this.pointSizes[i] = isSelected ? baseSize * 1.8 : baseSize;
+        this.pointSizes[i] = isSelected ? baseSize * 1.8 * this.brightness : baseSize * this.brightness;
 
         colorObj.setHex(getSpectralColor(star.spec));
         if (isSelected) {
@@ -128,7 +142,9 @@ export class StarRenderer {
         const star = this.stars[i];
         const isSelected = this.selectedIds.has(star.id);
         const baseRadius = absMagToRadius(star.absMag);
-        const radius = isSelected ? baseRadius * 1.3 * this.sphereScale : baseRadius * this.sphereScale;
+        const radius = isSelected
+          ? baseRadius * 1.3 * this.sphereScale * this.brightness
+          : baseRadius * this.sphereScale * this.brightness;
 
         dummy.position.set(pcToScene(star.x), pcToScene(star.y), pcToScene(star.z));
         dummy.scale.setScalar(radius);
@@ -180,7 +196,7 @@ export class StarRenderer {
       colors[i * 3 + 1] = colorObj.g;
       colors[i * 3 + 2] = colorObj.b;
 
-      sizes[i] = this.absMagToPointSize(star.absMag);
+      sizes[i] = this.absMagToPointSize(star.absMag) * this.brightness;
     }
 
     this.pointSizes = sizes;
@@ -215,7 +231,7 @@ export class StarRenderer {
     for (let i = 0; i < this.count; i++) {
       const star = this.stars[i];
       dummy.position.set(pcToScene(star.x), pcToScene(star.y), pcToScene(star.z));
-      const radius = absMagToRadius(star.absMag) * this.sphereScale;
+      const radius = absMagToRadius(star.absMag) * this.sphereScale * this.brightness;
       dummy.scale.setScalar(radius);
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);

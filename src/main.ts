@@ -5,7 +5,15 @@ import { createStarfield } from './starfield';
 import { StarRenderer, createSolMarker, type RenderMode } from './stars';
 import { createCompassContainer, updateCompass } from './compass';
 import { SelectionManager } from './selection';
-import { setupUI, updateFPSMeter, updateUnitButton, showSuggestion, updateSelectionWarning } from './ui';
+import {
+  setupUI,
+  updateFPSMeter,
+  updateUnitButton,
+  showSuggestion,
+  updateSelectionWarning,
+  populateContextPanel,
+  hideContextPanel,
+} from './ui';
 
 const VERSION = '0.1.0';
 
@@ -23,7 +31,12 @@ let currentCatalogue: CatalogueKey = '10pc';
 let starCount = 20;
 let renderMode: RenderMode = 'points';
 let sphereScale = 1.0;
+let brightness = 1.0;
 let unit: 'pc' | 'ly' = 'pc';
+let showNames = false;
+
+// Label elements cache
+const labelEls = new Map<string, HTMLElement>();
 
 // FPS tracking
 let lastFpsTime = performance.now();
@@ -59,7 +72,7 @@ function rebuildStars(): void {
     currentRenderer.dispose();
   }
 
-  currentRenderer = new StarRenderer(stars, count, renderMode, sphereScale);
+  currentRenderer = new StarRenderer(stars, count, renderMode, sphereScale, brightness);
   scene.add(currentRenderer.group);
 
   if (!selectionManager) {
@@ -67,7 +80,59 @@ function rebuildStars(): void {
   }
   selectionManager.setRenderer(currentRenderer);
 
+  // Rebuild labels
+  rebuildLabels();
   updateSelectionUI();
+}
+
+function rebuildLabels(): void {
+  const container = document.getElementById('star-labels');
+  if (!container) return;
+  container.innerHTML = '';
+  labelEls.clear();
+
+  if (!showNames || !currentRenderer) return;
+
+  for (let i = 0; i < currentRenderer.count; i++) {
+    const star = currentRenderer['stars'][i];
+    const el = document.createElement('div');
+    el.className = 'star-label';
+    el.textContent = star.name;
+    el.style.position = 'absolute';
+    el.style.pointerEvents = 'none';
+    el.style.color = 'rgba(255,255,255,0.75)';
+    el.style.fontSize = '11px';
+    el.style.textShadow = '0 1px 3px rgba(0,0,0,0.8)';
+    el.style.whiteSpace = 'nowrap';
+    el.style.zIndex = '5';
+    container.appendChild(el);
+    labelEls.set(star.id, el);
+  }
+}
+
+function updateLabels(): void {
+  if (!showNames || !currentRenderer) return;
+  const container = document.getElementById('star-labels');
+  if (!container) return;
+
+  for (const [id, el] of labelEls) {
+    const pos = currentRenderer.getPositionById(id);
+    if (!pos) {
+      el.style.display = 'none';
+      continue;
+    }
+    const projected = pos.clone().project(camera);
+    const x = (projected.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (-projected.y * 0.5 + 0.5) * window.innerHeight;
+
+    if (projected.z > 1 || x < 0 || x > window.innerWidth || y < 0 || y > window.innerHeight) {
+      el.style.display = 'none';
+    } else {
+      el.style.display = 'block';
+      el.style.left = `${x + 8}px`;
+      el.style.top = `${y - 8}px`;
+    }
+  }
 }
 
 function updateSelectionUI(): void {
@@ -113,20 +178,46 @@ function onResize(): void {
   }
 }
 
-function onPointer(clientX: number, clientY: number): void {
+function handlePointer(clientX: number, clientY: number, button: number = 0): void {
   if (!selectionManager) return;
-  const handled = selectionManager.onPointerDown(clientX, clientY);
-  if (handled) updateSelectionUI();
+  const result = selectionManager.onPointerDown(clientX, clientY, button);
+
+  if (result.isDouble || result.isRightClick) {
+    // Open context panel for the star
+    if (result.starId && currentRenderer) {
+      const star = currentRenderer.getStarById(result.starId);
+      if (star && ui) {
+        populateContextPanel(ui, star, () => exportSingleStar(star));
+      }
+    }
+    return;
+  }
+
+  if (result.handled) {
+    updateSelectionUI();
+    return;
+  }
+
+  // Clicked empty space — close context panel
+  if (ui) {
+    hideContextPanel(ui);
+  }
 }
 
 function onClick(event: MouseEvent): void {
-  onPointer(event.clientX, event.clientY);
+  handlePointer(event.clientX, event.clientY, event.button);
+}
+
+function onContextMenu(event: MouseEvent): void {
+  event.preventDefault();
+  handlePointer(event.clientX, event.clientY, 2);
 }
 
 function onTouchStart(event: TouchEvent): void {
   if (event.touches.length === 1) {
     touchStartX = event.touches[0].clientX;
     touchStartY = event.touches[0].clientY;
+    // track touch start time for double-tap detection if needed in future
   }
 }
 
@@ -136,7 +227,8 @@ function onTouchEnd(event: TouchEvent): void {
     const dy = event.changedTouches[0].clientY - touchStartY;
     if (Math.sqrt(dx * dx + dy * dy) < 10) {
       event.preventDefault();
-      onPointer(event.changedTouches[0].clientX, event.changedTouches[0].clientY);
+      // Treat quick second tap as double-tap if close in time
+      handlePointer(event.changedTouches[0].clientX, event.changedTouches[0].clientY);
     }
   }
 }
@@ -144,6 +236,9 @@ function onTouchEnd(event: TouchEvent): void {
 function onKeyDown(event: KeyboardEvent): void {
   if (event.key === 'Escape') {
     onClear();
+    if (ui) {
+      hideContextPanel(ui);
+    }
   }
 }
 
@@ -180,10 +275,80 @@ function onSphereScaleChange(scale: number): void {
   }
 }
 
+function onBrightnessChange(b: number): void {
+  brightness = b;
+  if (currentRenderer) {
+    currentRenderer.setBrightness(b);
+  }
+}
+
+function onNameToggle(show: boolean): void {
+  showNames = show;
+  rebuildLabels();
+}
+
 function onUnitToggle(): void {
   unit = unit === 'pc' ? 'ly' : 'pc';
   if (ui) updateUnitButton(ui.unitToggle, unit);
   updateSelectionUI();
+}
+
+function exportSingleStar(star: Star): void {
+  const blob = new Blob([JSON.stringify(star, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `star-${star.id}-${star.name.replace(/\s+/g, '_')}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function onExport(): void {
+  if (!currentRenderer) return;
+  const ids = selectionManager ? Array.from(selectionManager.selectedIds) : [];
+  const stars: Star[] = [];
+  for (let i = 0; i < currentRenderer.count; i++) {
+    const star = currentRenderer['stars'][i];
+    if (ids.length === 0 || ids.includes(star.id)) {
+      stars.push(star);
+    }
+  }
+  const blob = new Blob([JSON.stringify(stars, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `stars-${currentCatalogue}-${stars.length}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function onImport(file: File): Promise<void> {
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text) as Star[];
+    if (!Array.isArray(data) || data.length === 0) {
+      alert('Invalid JSON: expected an array of stars');
+      return;
+    }
+    if (!data[0].id || !data[0].name || data[0].x === undefined) {
+      alert('Invalid JSON: stars must have id, name, x, y, z, spec, absMag');
+      return;
+    }
+    const key = `custom-${Date.now()}` as CatalogueKey;
+    catalogues[key] = data;
+    currentCatalogue = key;
+    starCount = data.length;
+    if (ui) {
+      ui.catalogueSelect.innerHTML += `<option value="${key}">Custom — ${file.name}</option>`;
+      ui.catalogueSelect.value = key;
+      ui.starSlider.max = String(data.length);
+      ui.starSlider.value = String(data.length);
+      ui.starSliderValue.textContent = String(data.length);
+    }
+    rebuildStars();
+  } catch {
+    alert('Failed to parse JSON file');
+  }
 }
 
 function onClear(): void {
@@ -197,6 +362,7 @@ function animate(): void {
   requestAnimationFrame(animate);
   controls.update();
   updateCompass(camera);
+  updateLabels();
   renderer.render(scene, camera);
 
   // FPS
@@ -301,13 +467,18 @@ function init(): void {
     onCatalogueChange,
     onRenderModeChange,
     onSphereScaleChange,
+    onBrightnessChange,
+    onNameToggle,
     onUnitToggle,
+    onExport,
+    onImport,
     onClear
   );
 
   // Events
   window.addEventListener('resize', onResize);
   canvas.addEventListener('click', onClick);
+  canvas.addEventListener('contextmenu', onContextMenu);
   canvas.addEventListener('touchstart', onTouchStart, { passive: false });
   canvas.addEventListener('touchend', onTouchEnd, { passive: false });
   document.addEventListener('keydown', onKeyDown);

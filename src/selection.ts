@@ -2,6 +2,13 @@ import * as THREE from 'three';
 import { PC_TO_LY } from './coordinateUtils';
 import type { StarRenderer } from './stars';
 
+export interface PointerResult {
+  handled: boolean;
+  starId: string | null;
+  isDouble: boolean;
+  isRightClick: boolean;
+}
+
 export class SelectionManager {
   selectedIds: Set<string> = new Set();
   private linesGroup: THREE.Group;
@@ -9,6 +16,9 @@ export class SelectionManager {
   private mouse = new THREE.Vector2();
   private starPositions = new Map<string, THREE.Vector3>();
   private renderer: StarRenderer | null = null;
+  private lastClickTime = 0;
+  private lastClickStarId: string | null = null;
+  private readonly DOUBLE_CLICK_MS = 300;
 
   constructor(
     scene: THREE.Scene,
@@ -28,17 +38,17 @@ export class SelectionManager {
     this.updateLines();
   }
 
-  onPointerDown(clientX: number, clientY: number): boolean {
-    if (!this.renderer) return false;
+  onPointerDown(clientX: number, clientY: number, button: number = 0): PointerResult {
+    if (!this.renderer) return { handled: false, starId: null, isDouble: false, isRightClick: false };
     this.mouse.x = (clientX / window.innerWidth) * 2 - 1;
     this.mouse.y = -(clientY / window.innerHeight) * 2 + 1;
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
     const intersects = this.raycaster.intersectObjects(this.renderer.group.children, false);
+    let starId: string | null = null;
+
     if (intersects.length > 0) {
       const hit = intersects[0];
-      let starId: string | null = null;
-
       if (hit.object instanceof THREE.InstancedMesh && hit.instanceId !== undefined) {
         const mesh = hit.object as THREE.InstancedMesh;
         const instanceId = hit.instanceId;
@@ -51,18 +61,39 @@ export class SelectionManager {
       } else if (hit.object instanceof THREE.Points && hit.index !== undefined) {
         starId = this.renderer.getStarIdAtIndex(hit.index);
       }
-
-      if (starId) {
-        if (this.selectedIds.has(starId)) {
-          this.selectedIds.delete(starId);
-        } else {
-          this.selectedIds.add(starId);
-        }
-        this.updateLines();
-        return true;
-      }
     }
-    return false;
+
+    const isRightClick = button === 2;
+    const now = performance.now();
+    const timeSinceLastClick = now - this.lastClickTime;
+
+    // Right click always opens context for the star under cursor
+    if (isRightClick && starId) {
+      return { handled: true, starId, isDouble: false, isRightClick: true };
+    }
+
+    // Detect double click on same star
+    if (starId && starId === this.lastClickStarId && timeSinceLastClick < this.DOUBLE_CLICK_MS) {
+      this.lastClickTime = 0;
+      this.lastClickStarId = null;
+      return { handled: true, starId, isDouble: true, isRightClick: false };
+    }
+
+    // Single click
+    this.lastClickTime = now;
+    this.lastClickStarId = starId;
+
+    if (starId) {
+      if (this.selectedIds.has(starId)) {
+        this.selectedIds.delete(starId);
+      } else {
+        this.selectedIds.add(starId);
+      }
+      this.updateLines();
+      return { handled: true, starId, isDouble: false, isRightClick: false };
+    }
+
+    return { handled: false, starId: null, isDouble: false, isRightClick: false };
   }
 
   clear(): void {
