@@ -147,8 +147,8 @@ export function setupUI(
         <input id="dist-mult-slider" type="range" min="1.5" max="3.0" step="0.5" value="2.0" />
       </div>
       <div class="control-row">
-        <label>Count Multiplier <span id="count-mult-val">1.0</span></label>
-        <input id="count-mult-slider" type="range" min="1.0" max="2.0" step="0.5" value="1.0" />
+        <label title="1.0 = natural sphere density (volume ∝ r³)">Density <span id="count-mult-val">1.0</span></label>
+        <input id="count-mult-slider" type="range" min="0.1" max="2.0" step="0.1" value="1.0" />
       </div>
       <!-- Tables Toggle -->
       <div class="control-row">

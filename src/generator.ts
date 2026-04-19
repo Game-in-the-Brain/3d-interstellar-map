@@ -210,6 +210,12 @@ function sphericalToCartesian(azimuthDeg: number, elevationDeg: number, distance
 
 /**
  * Roll star count for a pass. Returns number of children to generate.
+ *
+ * In a 3D sphere, volume grows as r³. If distance doubles each pass,
+ * the available shell volume grows by 2³ = 8×. So star count should
+ * follow the cube of the distance multiplier to maintain uniform density.
+ *
+ * Formula: baseCount × (distanceMultiplier³ × countMultiplier)^(pass-1)
  */
 function rollStarCount(params: GenerationParameters, pass: number): number {
   let count: number;
@@ -221,9 +227,14 @@ function rollStarCount(params: GenerationParameters, pass: number): number {
     count = rollSum(1); // 1D6
   }
 
-  // Apply cumulative multiplier for passes > 1
+  // Sphere-corrected growth: volume ∝ r³
+  // Natural density factor = distanceMultiplier³
+  // User's countMultiplier acts as a density modifier (1.0 = natural)
+  const sphereFactor = Math.pow(params.distanceMultiplier, 3);
+  const effectiveMultiplier = sphereFactor * params.starCountMultiplier;
+
   if (pass > 1) {
-    count = Math.round(count * Math.pow(params.starCountMultiplier, pass - 1));
+    count = Math.round(count * Math.pow(effectiveMultiplier, pass - 1));
   }
 
   return Math.max(1, count);
