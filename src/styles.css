@@ -180,6 +180,43 @@ input[type="range"] {
   accent-color: #60a5fa;
 }
 
+/* Generation tables */
+.gen-table {
+  display: grid;
+  grid-template-columns: repeat(13, 1fr);
+  gap: 2px;
+  font-size: 10px;
+}
+
+.gen-table-cell {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 3px 2px;
+  text-align: center;
+  cursor: pointer;
+  border-radius: 3px;
+  min-height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gen-table-cell:hover {
+  background: rgba(255,255,255,0.12);
+}
+
+.gen-table-cell.editing {
+  background: rgba(96, 165, 250, 0.2);
+  border-color: rgba(96, 165, 250, 0.5);
+}
+
+.gen-table-header {
+  color: rgba(255,255,255,0.4);
+  font-size: 9px;
+  padding: 2px;
+  text-align: center;
+}
+
 /* FPS meter */
 #fps-meter {
   font-size: 12px;

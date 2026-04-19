@@ -156,11 +156,21 @@ function generateId(): string {
   return `gen-${nextId++}-${Date.now().toString(36)}`;
 }
 
+const GREEK_NAMES = [
+  'Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta',
+  'Iota', 'Kappa', 'Lambda', 'Mu', 'Nu', 'Xi', 'Omicron', 'Pi',
+  'Rho', 'Sigma', 'Tau', 'Upsilon', 'Phi', 'Chi', 'Psi', 'Omega',
+];
+
 function generateName(pass: number, parentName: string | null, index: number): string {
   if (pass === 0) return 'Origin';
   if (!parentName || parentName === 'Origin') {
-    return String.fromCharCode(65 + index); // A, B, C...
+    // Pass 1: Greek letters
+    if (index < GREEK_NAMES.length) return GREEK_NAMES[index];
+    // Fallback if more than 24
+    return `Star-${index + 1}`;
   }
+  // Deeper passes: ParentName-N
   return `${parentName}-${index + 1}`;
 }
 
@@ -171,14 +181,14 @@ function generateName(pass: number, parentName: string | null, index: number): s
 /**
  * Generate a single star with its stellar properties.
  */
-function generateStarProperties(): { stellarClass: StellarClass; grade: StellarGrade; spec: string; absMag: number } {
+function generateStarProperties(classTable?: ClassTable, gradeTable?: GradeTable): { stellarClass: StellarClass; grade: StellarGrade; spec: string; absMag: number; classRoll: number; gradeRoll: number } {
   const classRoll = rollSum(5);
   const gradeRoll = rollSum(5);
-  const stellarClass = getClassFromRoll(classRoll);
-  const grade = getGradeFromRoll(gradeRoll);
+  const stellarClass = classTable ? classTable[classRoll] : getClassFromRoll(classRoll);
+  const grade = gradeTable ? gradeTable[gradeRoll] : getGradeFromRoll(gradeRoll);
   const absMag = getAbsMag(stellarClass, grade);
   const spec = `${stellarClass}${grade}V`; // Main sequence default
-  return { stellarClass, grade, spec, absMag };
+  return { stellarClass, grade, spec, absMag, classRoll, gradeRoll };
 }
 
 /**
@@ -237,12 +247,22 @@ function rollDistance(params: GenerationParameters, pass: number): number {
  * Generate a complete star map from an origin star.
  * @returns Array of all generated stars (origin + children)
  */
-export function generateStarMap(params: GenerationParameters = DEFAULT_PARAMETERS): GeneratedStar[] {
-  nextId = 0; // Reset ID counter for reproducibility
+export interface GenerationTables {
+  classTable: ClassTable;
+  gradeTable: GradeTable;
+}
+
+export function generateStarMap(
+  params: GenerationParameters = DEFAULT_PARAMETERS,
+  tables?: GenerationTables
+): GeneratedStar[] {
+  nextId = 0;
   const stars: GeneratedStar[] = [];
+  const classTable = tables?.classTable;
+  const gradeTable = tables?.gradeTable;
 
   // Pass 0: Origin star
-  const originProps = generateStarProperties();
+  const originProps = generateStarProperties(classTable, gradeTable);
   const origin: GeneratedStar = {
     id: generateId(),
     name: 'Origin',
@@ -254,8 +274,8 @@ export function generateStarMap(params: GenerationParameters = DEFAULT_PARAMETER
     pass: 0,
     parentId: null,
     rolls: {
-      classRoll: rollSum(5),
-      gradeRoll: rollSum(5),
+      classRoll: originProps.classRoll,
+      gradeRoll: originProps.gradeRoll,
       xyRoll: 0,
       zRoll: 0,
       distanceRoll: 0,
@@ -265,10 +285,8 @@ export function generateStarMap(params: GenerationParameters = DEFAULT_PARAMETER
   };
   stars.push(origin);
 
-  // Keep track of which stars to process in the next pass
   let previousPassStars: GeneratedStar[] = [origin];
 
-  // Generate passes
   for (let pass = 1; pass <= params.maxPasses; pass++) {
     const currentPassStars: GeneratedStar[] = [];
 
@@ -276,7 +294,7 @@ export function generateStarMap(params: GenerationParameters = DEFAULT_PARAMETER
       const childCount = rollStarCount(params, pass);
 
       for (let i = 0; i < childCount; i++) {
-        const props = generateStarProperties();
+        const props = generateStarProperties(classTable, gradeTable);
         const xyRoll = rollD66();
         const zRoll = rollD66();
         const distanceRoll = rollDistance(params, pass);
@@ -295,8 +313,8 @@ export function generateStarMap(params: GenerationParameters = DEFAULT_PARAMETER
           pass,
           parentId: parent.id,
           rolls: {
-            classRoll: props.stellarClass === getClassFromRoll(rollSum(5)) ? rollSum(5) : rollSum(5), // Re-roll for record
-            gradeRoll: props.grade === getGradeFromRoll(rollSum(5)) ? rollSum(5) : rollSum(5),
+            classRoll: props.classRoll,
+            gradeRoll: props.gradeRoll,
             xyRoll,
             zRoll,
             distanceRoll,
@@ -305,14 +323,9 @@ export function generateStarMap(params: GenerationParameters = DEFAULT_PARAMETER
           hasMwgSystem: false,
         };
 
-        // Fix: store actual rolls used
-        star.rolls.classRoll = rollSum(5);
-        star.rolls.gradeRoll = rollSum(5);
-
         stars.push(star);
         currentPassStars.push(star);
 
-        // Hard cap to prevent runaway generation
         if (stars.length >= 500) {
           console.warn('[Generator] Hard cap reached at 500 stars');
           return stars;
@@ -321,8 +334,6 @@ export function generateStarMap(params: GenerationParameters = DEFAULT_PARAMETER
     }
 
     previousPassStars = currentPassStars;
-
-    // Stop if no stars were generated in this pass
     if (currentPassStars.length === 0) break;
   }
 

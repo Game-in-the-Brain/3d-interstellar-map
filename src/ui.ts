@@ -47,6 +47,10 @@ export interface UIElements {
   distMultValue: HTMLElement;
   countMultSlider: HTMLInputElement;
   countMultValue: HTMLElement;
+  tablesToggle: HTMLButtonElement;
+  tablesPanel: HTMLElement;
+  classTableEl: HTMLElement;
+  gradeTableEl: HTMLElement;
 }
 
 function createPanel(id: string, title: string, collapsedDefault: boolean): HTMLElement {
@@ -145,6 +149,16 @@ export function setupUI(
       <div class="control-row">
         <label>Count Multiplier <span id="count-mult-val">1.0</span></label>
         <input id="count-mult-slider" type="range" min="1.0" max="2.0" step="0.5" value="1.0" />
+      </div>
+      <!-- Tables Toggle -->
+      <div class="control-row">
+        <button id="tables-toggle" class="ui-btn" type="button" style="width:100%">▸ Star Tables</button>
+      </div>
+      <div id="tables-panel" style="display:none">
+        <div class="control-row" style="font-size:11px; color:rgba(255,255,255,0.6)">Class (5D6 → O/B/A/F/G/K/M)</div>
+        <div id="class-table" class="gen-table"></div>
+        <div class="control-row" style="font-size:11px; color:rgba(255,255,255,0.6); margin-top:8px">Grade (5D6 → 0–9)</div>
+        <div id="grade-table" class="gen-table"></div>
       </div>
       <div class="control-row">
         <button id="generate-btn" class="ui-btn" style="width:100%; background:#2a5a3a; color:#fff">🎲 Generate New Map</button>
@@ -252,6 +266,10 @@ export function setupUI(
   const hygModeBtn = document.getElementById('hyg-mode-btn') as HTMLButtonElement;
   const generateModeBtn = document.getElementById('generate-mode-btn') as HTMLButtonElement;
   const generateBtn = document.getElementById('generate-btn') as HTMLButtonElement;
+  const tablesToggle = document.getElementById('tables-toggle') as HTMLButtonElement;
+  const tablesPanel = document.getElementById('tables-panel') as HTMLElement;
+  const classTableEl = document.getElementById('class-table') as HTMLElement;
+  const gradeTableEl = document.getElementById('grade-table') as HTMLElement;
   const densitySelect = document.getElementById('density-select') as HTMLSelectElement;
   const passesSlider = document.getElementById('passes-slider') as HTMLInputElement;
   const passesValue = document.getElementById('passes-val') as HTMLElement;
@@ -371,13 +389,13 @@ export function setupUI(
     contextPanel.style.display = 'none';
   });
 
-  // Mode toggle
+  // Mode toggle — always call; main.ts guards against no-op switches
   hygModeBtn.addEventListener('click', () => {
-    if (appMode !== 'hyg') onModeChange('hyg');
+    onModeChange('hyg');
   });
 
   generateModeBtn.addEventListener('click', () => {
-    if (appMode !== 'generate') onModeChange('generate');
+    onModeChange('generate');
   });
 
   // Generation parameter listeners
@@ -391,6 +409,12 @@ export function setupUI(
 
   countMultSlider.addEventListener('input', () => {
     countMultValue.textContent = parseFloat(countMultSlider.value).toFixed(1);
+  });
+
+  tablesToggle.addEventListener('click', () => {
+    const showing = tablesPanel.style.display === 'block';
+    tablesPanel.style.display = showing ? 'none' : 'block';
+    tablesToggle.textContent = showing ? '▸ Star Tables' : '▾ Star Tables';
   });
 
   generateBtn.addEventListener('click', () => {
@@ -449,6 +473,10 @@ export function setupUI(
     distMultValue,
     countMultSlider,
     countMultValue,
+    tablesToggle,
+    tablesPanel,
+    classTableEl,
+    gradeTableEl,
   };
 }
 

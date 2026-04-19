@@ -35,6 +35,27 @@ export interface GenerationParameters {
   maxPasses: number;
 }
 
+export type StellarClass = 'O' | 'B' | 'A' | 'F' | 'G' | 'K' | 'M';
+export type StellarGrade = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+export type ClassTable = Record<number, StellarClass>;
+export type GradeTable = Record<number, StellarGrade>;
+
+export interface GenerationTables {
+  classTable: ClassTable;
+  gradeTable: GradeTable;
+}
+
+export interface MnemeMapExport {
+  mnemeFormat: 'starmap-v1';
+  name: string;
+  version: string;
+  exportedAt: string;
+  parameters: GenerationParameters;
+  tables: GenerationTables;
+  stars: GeneratedStar[];
+  mwgSystems: Record<string, Record<string, unknown>>;
+}
+
 export interface AppState {
   selectedStarIds: Set<string>;
   starCount: number;

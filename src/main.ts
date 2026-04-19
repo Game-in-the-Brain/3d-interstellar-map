@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import type { Star, CatalogueKey, MapState, AppMode, GenerationParameters, GeneratedStar } from './types';
+import type { Star, CatalogueKey, MapState, AppMode, GenerationParameters, GeneratedStar, GenerationTables, StellarClass, StellarGrade } from './types';
 import type { MnemeSystemExport } from './mnemeSystem';
 import { isMnemeSystemExport } from './mnemeSystem';
-import { generateStarMap, DENSITY_PRESETS } from './generator';
+import { generateStarMap, DENSITY_PRESETS, buildDefaultClassTable, buildDefaultGradeTable } from './generator';
 import { createStarfield } from './starfield';
 import { StarRenderer, createSolMarker, type RenderMode } from './stars';
 import { createCompassContainer, updateCompass } from './compass';
@@ -14,7 +14,6 @@ import {
   updateUnitButton,
   showSuggestion,
   updateSelectionWarning,
-  populateContextPanel,
   hideContextPanel,
 } from './ui';
 
@@ -36,6 +35,10 @@ let starCount = 20;
 // App mode
 let appMode: AppMode = 'hyg';
 let generatedStars: GeneratedStar[] = [];
+let generationTables: GenerationTables = {
+  classTable: buildDefaultClassTable(),
+  gradeTable: buildDefaultGradeTable(),
+};
 let renderMode: RenderMode = 'points';
 let sphereScale = 1.0;
 let brightness = 1.0;
@@ -205,7 +208,7 @@ function handlePointer(clientX: number, clientY: number, button: number = 0): vo
     if (result.starId && currentRenderer) {
       const star = currentRenderer.getStarById(result.starId);
       if (star && ui) {
-        populateContextPanel(ui, star, () => exportSingleStar(star));
+        showStarContextPanel(star);
       }
     }
     return;
@@ -220,6 +223,83 @@ function handlePointer(clientX: number, clientY: number, button: number = 0): vo
   if (ui) {
     hideContextPanel(ui);
   }
+}
+
+function showStarContextPanel(star: Star): void {
+  if (!ui) return;
+
+  // Build rich content
+  const gen = generatedStars.find(s => s.id === star.id);
+  const mwg = mwgSystems.get(star.id);
+  const display: Record<string, unknown> = { ...star };
+
+  if (gen) {
+    display._generation = {
+      pass: gen.pass,
+      parentId: gen.parentId,
+      distanceFromParentLy: gen.distanceFromParent,
+      rolls: gen.rolls,
+    };
+  }
+
+  if (mwg) {
+    const primary = (mwg.primaryStar as Record<string, unknown>) || {};
+    const mw = (mwg.mainWorld as Record<string, unknown>) || {};
+    const inh = (mwg.inhabitants as Record<string, unknown>) || {};
+    const sp = (inh.starport as Record<string, unknown>) || {};
+    display._mwgSystem = {
+      starClass: primary.class,
+      starGrade: primary.grade,
+      starMass: primary.mass,
+      starLuminosity: primary.luminosity,
+      worldType: mw.type,
+      worldSizeKm: mw.size,
+      worldGravity: mw.gravity,
+      worldAtmosphere: mw.atmosphere,
+      worldTemperature: mw.temperature,
+      worldHabitability: mw.habitability,
+      techLevel: inh.techLevel,
+      population: inh.population,
+      wealth: inh.wealth,
+      powerStructure: inh.powerStructure,
+      development: inh.development,
+      starportClass: sp.class,
+      travelZone: inh.travelZone,
+      companionCount: (mwg.companionStars as unknown[] || []).length,
+      bodyCount: (
+        (mwg.circumstellarDisks as unknown[] || []).length +
+        (mwg.dwarfPlanets as unknown[] || []).length +
+        (mwg.terrestrialWorlds as unknown[] || []).length +
+        (mwg.iceWorlds as unknown[] || []).length +
+        (mwg.gasWorlds as unknown[] || []).length +
+        (mwg.moons as unknown[] || []).length
+      ),
+    };
+  }
+
+  ui.contextTitle.textContent = star.name || `Star ${star.id}`;
+  ui.contextJson.textContent = JSON.stringify(display, null, 2);
+  ui.context2dLink.href = `https://game-in-the-brain.github.io/2d-star-system-map/?starId=${encodeURIComponent(star.id)}`;
+  ui.contextExportBtn.onclick = () => exportSingleStar(star);
+
+  // MWG link
+  const hasMwg = mwgSystems.has(star.id);
+  if (ui.contextMwgLink) {
+    ui.contextMwgLink.style.display = hasMwg ? 'inline-flex' : 'none';
+    if (hasMwg) {
+      const params = new URLSearchParams({
+        starId: star.id,
+        name: star.name,
+        spec: star.spec,
+        x: String(star.x),
+        y: String(star.y),
+        z: String(star.z),
+      });
+      ui.contextMwgLink.href = `https://game-in-the-brain.github.io/Mneme-CE-World-Generator/?${params.toString()}`;
+    }
+  }
+
+  ui.contextPanel.style.display = 'block';
 }
 
 function onClick(event: MouseEvent): void {
@@ -505,9 +585,8 @@ function onModeChange(mode: AppMode): void {
 
 function onGenerate(params: GenerationParameters): void {
   appMode = 'generate';
-  generatedStars = generateStarMap(params);
+  generatedStars = generateStarMap(params, generationTables);
   rebuildStars();
-  // Update UI to reflect generate mode
   if (ui) {
     const hygControls = document.getElementById('hyg-controls');
     const generateControls = document.getElementById('generate-controls');
@@ -516,6 +595,86 @@ function onGenerate(params: GenerationParameters): void {
     ui.hygModeBtn.classList.remove('active-mode');
     ui.generateModeBtn.classList.add('active-mode');
   }
+}
+
+// =====================
+// Table Rendering
+// =====================
+
+function renderTables(): void {
+  if (!ui) return;
+  const classEl = ui.classTableEl;
+  const gradeEl = ui.gradeTableEl;
+  if (!classEl || !gradeEl) return;
+
+  // Render class table: rows of 13 cells (rolls 5–30 = 26 values, 2 rows of 13)
+  let classHtml = '';
+  for (let row = 0; row < 2; row++) {
+    for (let col = 0; col < 13; col++) {
+      const roll = 5 + row * 13 + col;
+      if (roll > 30) break;
+      const cls = generationTables.classTable[roll];
+      classHtml += `<div class="gen-table-cell" data-roll="${roll}" data-type="class" title="5D6=${roll} → ${cls}">${cls}</div>`;
+    }
+  }
+  classEl.innerHTML = classHtml;
+
+  // Render grade table
+  let gradeHtml = '';
+  for (let row = 0; row < 2; row++) {
+    for (let col = 0; col < 13; col++) {
+      const roll = 5 + row * 13 + col;
+      if (roll > 30) break;
+      const grade = generationTables.gradeTable[roll];
+      gradeHtml += `<div class="gen-table-cell" data-roll="${roll}" data-type="grade" title="5D6=${roll} → ${grade}">${grade}</div>`;
+    }
+  }
+  gradeEl.innerHTML = gradeHtml;
+
+  // Add click handlers
+  classEl.querySelectorAll('.gen-table-cell').forEach(cell => {
+    cell.addEventListener('click', (e) => {
+      const target = e.currentTarget as HTMLElement;
+      const roll = parseInt(target.dataset.roll || '0', 10);
+      const type = target.dataset.type;
+      if (type === 'class') {
+        cycleClass(roll);
+      } else if (type === 'grade') {
+        cycleGrade(roll);
+      }
+      renderTables();
+      // Regenerate if in generate mode
+      if (appMode === 'generate') {
+        const params = getCurrentGenerationParams();
+        generatedStars = generateStarMap(params, generationTables);
+        rebuildStars();
+      }
+    });
+  });
+}
+
+function cycleClass(roll: number): void {
+  const order: StellarClass[] = ['O', 'B', 'A', 'F', 'G', 'K', 'M'];
+  const current = generationTables.classTable[roll];
+  const idx = order.indexOf(current);
+  generationTables.classTable[roll] = order[(idx + 1) % order.length];
+}
+
+function cycleGrade(roll: number): void {
+  const current = generationTables.gradeTable[roll];
+  generationTables.gradeTable[roll] = ((current + 1) % 10) as StellarGrade;
+}
+
+function getCurrentGenerationParams(): GenerationParameters {
+  if (!ui) return DENSITY_PRESETS.average;
+  return {
+    density: ui.densitySelect.value as 'sparse' | 'average' | 'dense' | 'custom',
+    starCountDice: 6,
+    distanceDice: ui.densitySelect.value === 'sparse' ? 2 : ui.densitySelect.value === 'dense' ? 4 : 3,
+    distanceMultiplier: parseFloat(ui.distMultSlider.value),
+    starCountMultiplier: parseFloat(ui.countMultSlider.value),
+    maxPasses: parseInt(ui.passesSlider.value, 10),
+  };
 }
 
 function onSaveMap(saveAs: boolean): void {
@@ -607,6 +766,10 @@ function onClear(): void {
 }
 
 function animate(): void {
+  // Render generation tables on first frame if in generate mode
+  if (appMode === 'generate' && ui && ui.classTableEl && ui.classTableEl.children.length === 0) {
+    renderTables();
+  }
   requestAnimationFrame(animate);
   controls.update();
   updateCompass(camera);
