@@ -12,7 +12,7 @@ A lightweight, offline-capable 3D star map showing Sol and nearby real stars out
 - **Two render modes** — Emissive points (default) or 3D spheres, toggled at runtime
 - **Spectral-class colours** — Stars coloured by spectral class, sized by absolute magnitude
 - **Persistent galactic compass** — Always-visible overlay showing Coreward (+X), Spinward (+Y), Tailward (−Y), Outward (−X)
-- **Star selection & distance lines** — Click to select; lines and distances appear between every pair
+- **Star selection & distance lines** — Click to select; lines and distances appear between every pair, or in ordered-path mode
 - **Name labels** — Optional toggle to show star names projected onto the map
 - **Brightness control** — Adjust star glow intensity (0.5× – 2.0×)
 - **Performance guard** — Star-count slider (10 → max) with FPS meter and auto-suggestions
@@ -60,14 +60,17 @@ A lightweight, offline-capable 3D star map showing Sol and nearby real stars out
 | **Show names / Hide names** | Toggle star name labels projected onto the 3D view |
 | **Show pc / Show ly** | Toggle distance unit between parsecs and light-years |
 | **🔓 Unlock / 🔒 Lock selection** | **Lock** = tapping stars always adds them (never removes). For phone/tablet multi-select without a Shift key. |
+| **Full mesh / Ordered path** | Toggle line mode: **Full mesh** = connect every star to every other star. **Ordered path** = connect stars in the exact click order (1st → 2nd → 3rd…). Great for planning routes. |
 | **Export JSON** | Download the current selection (or all visible if none selected) as JSON |
 | **Import JSON** | Load a custom star catalogue from a JSON file |
 
 ### Selection Panel (bottom-left)
 
 - Lists selected stars and pairwise distances
+  - **Full mesh** mode shows `↔` bidirectional distances between all pairs
+  - **Ordered path** mode shows `→` directional distances along your click sequence
 - **Clear selection** button removes all selections
-- **Warning banner** appears at 10+ selected stars (O(n²) line count can crash the browser)
+- **Warning banner** appears at 10+ selected stars in Full mesh mode (O(n²) line count can crash the browser)
 
 ### Detail Panel (centered floating)
 
