@@ -16,8 +16,11 @@ export interface UIElements {
   nameToggle: HTMLButtonElement;
   unitToggle: HTMLButtonElement;
   lockToggle: HTMLButtonElement;
-  exportBtn: HTMLButtonElement;
-  importBtn: HTMLInputElement;
+  saveMapBtn: HTMLButtonElement;
+  saveAsBtn: HTMLButtonElement;
+  loadMapBtn: HTMLInputElement;
+  exportStarsBtn: HTMLButtonElement;
+  importStarsBtn: HTMLInputElement;
   selectionPanel: HTMLElement;
   selectionList: HTMLElement;
   selectionWarning: HTMLElement;
@@ -61,8 +64,10 @@ export function setupUI(
   onNameToggle: (show: boolean) => void,
   onUnitToggle: () => void,
   onLockToggle: (locked: boolean) => void,
-  onExport: () => void,
-  onImport: (file: File) => void,
+  onSaveMap: (saveAs: boolean) => void,
+  onLoadMap: (file: File) => void,
+  onExportStars: () => void,
+  onImportStars: (file: File) => void,
   onClear: () => void
 ): UIElements {
   const app = document.getElementById('app')!;
@@ -113,10 +118,18 @@ export function setupUI(
       <button id="lock-toggle" class="ui-btn">🔓 Unlock selection</button>
     </div>
     <div class="control-row row-horizontal">
-      <button id="export-btn" class="ui-btn">Export JSON</button>
+      <button id="save-map-btn" class="ui-btn">💾 Save Map</button>
+      <button id="save-as-btn" class="ui-btn">💾 Save As…</button>
       <label class="ui-btn file-btn">
-        Import JSON
-        <input id="import-btn" type="file" accept=".json" style="display:none" />
+        📂 Load Map
+        <input id="load-map-btn" type="file" accept=".json" style="display:none" />
+      </label>
+    </div>
+    <div class="control-row row-horizontal">
+      <button id="export-stars-btn" class="ui-btn">⭐ Export Stars</button>
+      <label class="ui-btn file-btn">
+        ⭐ Import Stars
+        <input id="import-stars-btn" type="file" accept=".json" style="display:none" />
       </label>
     </div>
     <div class="control-row">
@@ -181,8 +194,11 @@ export function setupUI(
   const nameToggle = document.getElementById('name-toggle') as HTMLButtonElement;
   const unitToggle = document.getElementById('unit-toggle') as HTMLButtonElement;
   const lockToggle = document.getElementById('lock-toggle') as HTMLButtonElement;
-  const exportBtn = document.getElementById('export-btn') as HTMLButtonElement;
-  const importBtn = document.getElementById('import-btn') as HTMLInputElement;
+  const saveMapBtn = document.getElementById('save-map-btn') as HTMLButtonElement;
+  const saveAsBtn = document.getElementById('save-as-btn') as HTMLButtonElement;
+  const loadMapBtn = document.getElementById('load-map-btn') as HTMLInputElement;
+  const exportStarsBtn = document.getElementById('export-stars-btn') as HTMLButtonElement;
+  const importStarsBtn = document.getElementById('import-stars-btn') as HTMLInputElement;
   const fpsMeter = document.getElementById('fps-meter') as HTMLElement;
   const selectionList = document.getElementById('selection-list') as HTMLElement;
   const selectionWarning = document.getElementById('selection-warning') as HTMLElement;
@@ -237,14 +253,28 @@ export function setupUI(
     onLockToggle(!locked);
   });
 
-  exportBtn.addEventListener('click', () => {
-    onExport();
+  saveMapBtn.addEventListener('click', () => {
+    onSaveMap(false);
   });
 
-  importBtn.addEventListener('change', () => {
-    const file = importBtn.files?.[0];
-    if (file) onImport(file);
-    importBtn.value = '';
+  saveAsBtn.addEventListener('click', () => {
+    onSaveMap(true);
+  });
+
+  loadMapBtn.addEventListener('change', () => {
+    const file = loadMapBtn.files?.[0];
+    if (file) onLoadMap(file);
+    loadMapBtn.value = '';
+  });
+
+  exportStarsBtn.addEventListener('click', () => {
+    onExportStars();
+  });
+
+  importStarsBtn.addEventListener('change', () => {
+    const file = importStarsBtn.files?.[0];
+    if (file) onImportStars(file);
+    importStarsBtn.value = '';
   });
 
   clearBtn.addEventListener('click', () => {
@@ -269,8 +299,11 @@ export function setupUI(
     brightnessValue,
     nameToggle,
     unitToggle,
-    exportBtn,
-    importBtn,
+    saveMapBtn,
+    saveAsBtn,
+    loadMapBtn,
+    exportStarsBtn,
+    importStarsBtn,
     selectionPanel,
     selectionList,
     selectionWarning,

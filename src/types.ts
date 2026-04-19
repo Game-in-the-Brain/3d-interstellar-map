@@ -16,3 +16,18 @@ export interface AppState {
   catalogue: CatalogueKey;
   unit: 'pc' | 'ly';
 }
+
+export interface MapState {
+  version: string;
+  savedAt: string;
+  camera: { x: number; y: number; z: number; targetX: number; targetY: number; targetZ: number };
+  catalogue: CatalogueKey;
+  starCount: number;
+  renderMode: 'points' | 'spheres';
+  sphereScale: number;
+  brightness: number;
+  unit: 'pc' | 'ly';
+  showNames: boolean;
+  lockSelection: boolean;
+  selectedIds: string[];
+}

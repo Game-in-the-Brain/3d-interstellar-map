@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import type { Star, CatalogueKey } from './types';
+import type { Star, CatalogueKey, MapState } from './types';
 import { createStarfield } from './starfield';
 import { StarRenderer, createSolMarker, type RenderMode } from './stars';
 import { createCompassContainer, updateCompass } from './compass';
@@ -309,7 +309,7 @@ function exportSingleStar(star: Star): void {
   URL.revokeObjectURL(url);
 }
 
-function onExport(): void {
+function onExportStars(): void {
   if (!currentRenderer) return;
   const ids = selectionManager ? Array.from(selectionManager.selectedIds) : [];
   const stars: Star[] = [];
@@ -328,7 +328,7 @@ function onExport(): void {
   URL.revokeObjectURL(url);
 }
 
-async function onImport(file: File): Promise<void> {
+async function onImportStars(file: File): Promise<void> {
   try {
     const text = await file.text();
     const data = JSON.parse(text) as Star[];
@@ -354,6 +354,104 @@ async function onImport(file: File): Promise<void> {
     rebuildStars();
   } catch {
     alert('Failed to parse JSON file');
+  }
+}
+
+function buildMapState(): MapState {
+  return {
+    version: VERSION,
+    savedAt: new Date().toISOString(),
+    camera: {
+      x: camera.position.x,
+      y: camera.position.y,
+      z: camera.position.z,
+      targetX: controls.target.x,
+      targetY: controls.target.y,
+      targetZ: controls.target.z,
+    },
+    catalogue: currentCatalogue,
+    starCount,
+    renderMode,
+    sphereScale,
+    brightness,
+    unit,
+    showNames,
+    lockSelection: selectionManager?.lockSelection ?? false,
+    selectedIds: selectionManager ? Array.from(selectionManager.selectedIds) : [],
+  };
+}
+
+function onSaveMap(saveAs: boolean): void {
+  const state = buildMapState();
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const defaultName = `3d-map-${state.catalogue}-${state.savedAt.slice(0, 10)}.json`;
+  a.download = saveAs ? (prompt('Save map as:', defaultName) || defaultName) : defaultName;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function onLoadMap(file: File): Promise<void> {
+  try {
+    const text = await file.text();
+    const state = JSON.parse(text) as MapState;
+    if (!state.camera || !state.catalogue || state.starCount === undefined) {
+      alert('Invalid map JSON: missing required fields');
+      return;
+    }
+
+    // Restore catalogue if it exists
+    if (catalogues[state.catalogue]) {
+      currentCatalogue = state.catalogue;
+      if (ui) ui.catalogueSelect.value = state.catalogue;
+    }
+
+    starCount = state.starCount;
+    renderMode = state.renderMode;
+    sphereScale = state.sphereScale;
+    brightness = state.brightness;
+    unit = state.unit;
+    showNames = state.showNames;
+
+    // Update UI controls
+    if (ui) {
+      ui.starSlider.value = String(starCount);
+      ui.starSliderValue.textContent = String(starCount);
+      ui.renderModeSelect.value = renderMode;
+      ui.sphereScaleRow.style.display = renderMode === 'spheres' ? 'flex' : 'none';
+      ui.sphereScaleSlider.value = String(sphereScale);
+      ui.sphereScaleValue.textContent = sphereScale.toFixed(1);
+      ui.brightnessSlider.value = String(brightness);
+      ui.brightnessValue.textContent = brightness.toFixed(1);
+      updateUnitButton(ui.unitToggle, unit);
+      ui.nameToggle.textContent = showNames ? 'Hide names' : 'Show names';
+      if (selectionManager) {
+        selectionManager.lockSelection = state.lockSelection;
+        ui.lockToggle.textContent = state.lockSelection ? '🔒 Lock selection' : '🔓 Unlock selection';
+      }
+    }
+
+    // Rebuild stars
+    rebuildStars();
+
+    // Restore camera
+    camera.position.set(state.camera.x, state.camera.y, state.camera.z);
+    controls.target.set(state.camera.targetX, state.camera.targetY, state.camera.targetZ);
+    controls.update();
+
+    // Restore selection
+    if (selectionManager) {
+      selectionManager.clear();
+      for (const id of state.selectedIds) {
+        selectionManager.selectedIds.add(id);
+      }
+      selectionManager.updateLines();
+      updateSelectionUI();
+    }
+  } catch {
+    alert('Failed to parse map JSON file');
   }
 }
 
@@ -477,8 +575,10 @@ function init(): void {
     onNameToggle,
     onUnitToggle,
     onLockToggle,
-    onExport,
-    onImport,
+    onSaveMap,
+    onLoadMap,
+    onExportStars,
+    onImportStars,
     onClear
   );
 

@@ -129,7 +129,7 @@ export class SelectionManager {
     return result;
   }
 
-  private updateLines(): void {
+  updateLines(): void {
     while (this.linesGroup.children.length > 0) {
       const child = this.linesGroup.children[0];
       if (child instanceof THREE.LineSegments) {
