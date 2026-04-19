@@ -16,6 +16,7 @@ export interface UIElements {
   nameToggle: HTMLButtonElement;
   unitToggle: HTMLButtonElement;
   lockToggle: HTMLButtonElement;
+  orderedPathToggle: HTMLButtonElement;
   saveMapBtn: HTMLButtonElement;
   saveAsBtn: HTMLButtonElement;
   loadMapBtn: HTMLInputElement;
@@ -64,6 +65,7 @@ export function setupUI(
   onNameToggle: (show: boolean) => void,
   onUnitToggle: () => void,
   onLockToggle: (locked: boolean) => void,
+  onOrderedPathToggle: (enabled: boolean) => void,
   onSaveMap: (saveAs: boolean) => void,
   onLoadMap: (file: File) => void,
   onExportStars: () => void,
@@ -116,6 +118,9 @@ export function setupUI(
     </div>
     <div class="control-row">
       <button id="lock-toggle" class="ui-btn">🔓 Unlock selection</button>
+    </div>
+    <div class="control-row">
+      <button id="ordered-path-toggle" class="ui-btn">Full mesh</button>
     </div>
     <div class="control-row row-horizontal">
       <button id="save-map-btn" class="ui-btn">💾 Save Map</button>
@@ -194,6 +199,7 @@ export function setupUI(
   const nameToggle = document.getElementById('name-toggle') as HTMLButtonElement;
   const unitToggle = document.getElementById('unit-toggle') as HTMLButtonElement;
   const lockToggle = document.getElementById('lock-toggle') as HTMLButtonElement;
+  const orderedPathToggle = document.getElementById('ordered-path-toggle') as HTMLButtonElement;
   const saveMapBtn = document.getElementById('save-map-btn') as HTMLButtonElement;
   const saveAsBtn = document.getElementById('save-as-btn') as HTMLButtonElement;
   const loadMapBtn = document.getElementById('load-map-btn') as HTMLInputElement;
@@ -253,6 +259,12 @@ export function setupUI(
     onLockToggle(!locked);
   });
 
+  orderedPathToggle.addEventListener('click', () => {
+    const enabled = orderedPathToggle.textContent === 'Ordered path';
+    orderedPathToggle.textContent = enabled ? 'Full mesh' : 'Ordered path';
+    onOrderedPathToggle(!enabled);
+  });
+
   saveMapBtn.addEventListener('click', () => {
     onSaveMap(false);
   });
@@ -309,6 +321,7 @@ export function setupUI(
     selectionWarning,
     clearBtn,
     lockToggle,
+    orderedPathToggle,
     contextPanel,
     contextTitle,
     contextJson,

@@ -299,6 +299,14 @@ function onLockToggle(locked: boolean): void {
   }
 }
 
+function onOrderedPathToggle(enabled: boolean): void {
+  if (selectionManager) {
+    selectionManager.orderedPathMode = enabled;
+    selectionManager.updateLines();
+    updateSelectionUI();
+  }
+}
+
 function exportSingleStar(star: Star): void {
   const blob = new Blob([JSON.stringify(star, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -377,6 +385,8 @@ function buildMapState(): MapState {
     unit,
     showNames,
     lockSelection: selectionManager?.lockSelection ?? false,
+    orderedPathMode: selectionManager?.orderedPathMode ?? false,
+    orderedSelection: selectionManager?.orderedSelection ?? [],
     selectedIds: selectionManager ? Array.from(selectionManager.selectedIds) : [],
   };
 }
@@ -430,6 +440,8 @@ async function onLoadMap(file: File): Promise<void> {
       if (selectionManager) {
         selectionManager.lockSelection = state.lockSelection;
         ui.lockToggle.textContent = state.lockSelection ? '🔒 Lock selection' : '🔓 Unlock selection';
+        selectionManager.orderedPathMode = state.orderedPathMode ?? false;
+        ui.orderedPathToggle.textContent = selectionManager.orderedPathMode ? 'Ordered path' : 'Full mesh';
       }
     }
 
@@ -446,6 +458,11 @@ async function onLoadMap(file: File): Promise<void> {
       selectionManager.clear();
       for (const id of state.selectedIds) {
         selectionManager.selectedIds.add(id);
+      }
+      if (state.orderedSelection && state.orderedSelection.length > 0) {
+        selectionManager.orderedSelection = [...state.orderedSelection];
+      } else if (state.selectedIds) {
+        selectionManager.orderedSelection = [...state.selectedIds];
       }
       selectionManager.updateLines();
       updateSelectionUI();
@@ -575,6 +592,7 @@ function init(): void {
     onNameToggle,
     onUnitToggle,
     onLockToggle,
+    onOrderedPathToggle,
     onSaveMap,
     onLoadMap,
     onExportStars,

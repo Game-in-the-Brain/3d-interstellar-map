@@ -11,7 +11,9 @@ export interface PointerResult {
 
 export class SelectionManager {
   selectedIds: Set<string> = new Set();
+  orderedSelection: string[] = [];
   lockSelection = false;
+  orderedPathMode = false;
   private linesGroup: THREE.Group;
   private raycaster = new THREE.Raycaster();
   private mouse = new THREE.Vector2();
@@ -116,14 +118,17 @@ export class SelectionManager {
         // Lock mode: always add, never remove
         if (!this.selectedIds.has(starId)) {
           this.selectedIds.add(starId);
+          this.orderedSelection.push(starId);
           this.updateLines();
         }
       } else {
         // Toggle mode
         if (this.selectedIds.has(starId)) {
           this.selectedIds.delete(starId);
+          this.orderedSelection = this.orderedSelection.filter(id => id !== starId);
         } else {
           this.selectedIds.add(starId);
+          this.orderedSelection.push(starId);
         }
         this.updateLines();
       }
@@ -135,22 +140,32 @@ export class SelectionManager {
 
   clear(): void {
     this.selectedIds.clear();
+    this.orderedSelection = [];
     this.updateLines();
   }
 
   getDistances(unit: 'pc' | 'ly'): { pair: string; dist: number }[] {
-    const ids = Array.from(this.selectedIds);
+    const ids = this.orderedPathMode ? this.orderedSelection : Array.from(this.selectedIds);
     const result: { pair: string; dist: number }[] = [];
-    for (let i = 0; i < ids.length; i++) {
-      for (let j = i + 1; j < ids.length; j++) {
+    if (this.orderedPathMode) {
+      for (let i = 0; i < ids.length - 1; i++) {
         const a = this.starPositions.get(ids[i]);
-        const b = this.starPositions.get(ids[j]);
+        const b = this.starPositions.get(ids[i + 1]);
         if (!a || !b) continue;
-        const dPc = Math.sqrt(
-          (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2
-        );
+        const dPc = Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2);
         const dist = unit === 'ly' ? dPc * PC_TO_LY : dPc;
-        result.push({ pair: `${ids[i]} ↔ ${ids[j]}`, dist: Math.round(dist * 1000) / 1000 });
+        result.push({ pair: `${ids[i]} → ${ids[i + 1]}`, dist: Math.round(dist * 1000) / 1000 });
+      }
+    } else {
+      for (let i = 0; i < ids.length; i++) {
+        for (let j = i + 1; j < ids.length; j++) {
+          const a = this.starPositions.get(ids[i]);
+          const b = this.starPositions.get(ids[j]);
+          if (!a || !b) continue;
+          const dPc = Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2);
+          const dist = unit === 'ly' ? dPc * PC_TO_LY : dPc;
+          result.push({ pair: `${ids[i]} ↔ ${ids[j]}`, dist: Math.round(dist * 1000) / 1000 });
+        }
       }
     }
     return result;
@@ -166,16 +181,25 @@ export class SelectionManager {
       this.linesGroup.remove(child);
     }
 
-    const ids = Array.from(this.selectedIds);
+    const ids = this.orderedPathMode ? this.orderedSelection : Array.from(this.selectedIds);
     if (ids.length < 2) return;
 
     const positions: number[] = [];
-    for (let i = 0; i < ids.length; i++) {
-      for (let j = i + 1; j < ids.length; j++) {
+    if (this.orderedPathMode) {
+      for (let i = 0; i < ids.length - 1; i++) {
         const a = this.starPositions.get(ids[i]);
-        const b = this.starPositions.get(ids[j]);
+        const b = this.starPositions.get(ids[i + 1]);
         if (!a || !b) continue;
         positions.push(a.x, a.y, a.z, b.x, b.y, b.z);
+      }
+    } else {
+      for (let i = 0; i < ids.length; i++) {
+        for (let j = i + 1; j < ids.length; j++) {
+          const a = this.starPositions.get(ids[i]);
+          const b = this.starPositions.get(ids[j]);
+          if (!a || !b) continue;
+          positions.push(a.x, a.y, a.z, b.x, b.y, b.z);
+        }
       }
     }
 

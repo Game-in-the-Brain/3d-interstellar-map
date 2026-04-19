@@ -29,5 +29,7 @@ export interface MapState {
   unit: 'pc' | 'ly';
   showNames: boolean;
   lockSelection: boolean;
+  orderedPathMode: boolean;
+  orderedSelection: string[];
   selectedIds: string[];
 }
