@@ -2,7 +2,7 @@
 
 **Project:** 3D Interstellar Sector Map  
 **Repo:** `Game-in-the-Brain/3d-interstellar-map`  
-**Last Updated:** 2026-04-15
+**Last Updated:** 2026-04-19
 
 ---
 
@@ -15,19 +15,6 @@ If you are an AI model picking up this project, **read this block first**.
 Working directory: `/home/justin/opencode260220/3d-interstellar-map`  
 Build command: `npm run build` (must pass with zero TypeScript errors).
 
-### Current Open Items
-
-| # | Status | Notes |
-|---|--------|-------|
-| FR-001 | 📋 Spec | Galactic coordinate frame — Sol at origin |
-| FR-002 | 📋 Spec | Spectral-class colour/size rendering |
-| FR-003 | 📋 Spec | Background starfield with coreward density |
-| FR-004 | 📋 Spec | Persistent galactic compass |
-| FR-005 | 📋 Spec | Star selection & distance lines |
-| FR-006 | 📋 Spec | Star-count slider & FPS guard |
-| FR-007 | 📋 Spec | Static star catalogues (10/50/100 pc) |
-| FR-008 | 📋 Spec | PWA deployment to GitHub Pages |
-
 ### What NOT to change
 - Sol must remain at `(0, 0, 0)`.
 - Galactic orientation: +X = Coreward, +Y = Spinward, +Z = North Galactic Pole.
@@ -39,10 +26,11 @@ Build command: `npm run build` (must pass with zero TypeScript errors).
 
 | # | Area | Title | Priority | Status |
 |---|------|-------|----------|--------|
-| [QA-001](#qa-001) | Project Setup | Repository scaffold and Vite build pipeline | 🔴 High | 📋 Open |
-| [QA-002](#qa-002) | Data | Source and validate stellar catalogue (10 pc minimum) | 🔴 High | 📋 Open |
+| [QA-001](#qa-001) | Project Setup | Repository scaffold and Vite build pipeline | 🔴 High | ✅ Closed |
+| [QA-002](#qa-002) | Data | Source and validate stellar catalogue (10 pc minimum) | 🔴 High | ✅ Closed |
 | [QA-003](#qa-003) | Rendering | Background starfield performance on integrated GPUs | 🟠 Medium | 📋 Open |
-| [QA-004](#qa-004) | UX | Touch tap vs. drag ambiguity on mobile | 🟡 Low | 📋 Open |
+| [QA-004](#qa-004) | UX | Touch tap vs. drag ambiguity on mobile | 🟡 Low | ✅ Closed |
+| [QA-005](#qa-005) | Performance | Browser crash guard for large star selections | 🔴 High | ✅ Closed |
 
 ---
 
@@ -55,20 +43,17 @@ Build command: `npm run build` (must pass with zero TypeScript errors).
 **Title:** Repository scaffold and Vite build pipeline  
 **Area:** Project Setup  
 **Priority:** 🔴 High  
-**Status:** 📋 Open  
+**Status:** ✅ Closed  
 **File(s):** `vite.config.ts`, `package.json`, `tsconfig.json`, `index.html`
 
 **Description:**  
-The repo currently contains only planning documents (`repoanalysis.md`, `frd.md`, `qa.md`). No code or build configuration exists yet.
-
-**Expected Behaviour:**  
-`npm install && npm run build` should produce a working `dist/` folder.
+Scaffold complete. `npm install && npm run build` produces a working `dist/` folder with zero TypeScript errors.
 
 **Acceptance Criteria:**
-- [ ] `vite.config.ts` with `base: '/3d-interstellar-map/'`
-- [ ] `index.html` entry point with canvas and minimal UI
-- [ ] `src/main.ts` bootstrap (scene, camera, renderer, OrbitControls)
-- [ ] TypeScript build passes with zero errors
+- [x] `vite.config.ts` with `base: '/3d-interstellar-map/'`
+- [x] `index.html` entry point with canvas and UI overlays
+- [x] `src/main.ts` bootstrap (scene, camera, renderer, OrbitControls)
+- [x] TypeScript build passes with zero errors
 
 ---
 
@@ -77,25 +62,17 @@ The repo currently contains only planning documents (`repoanalysis.md`, `frd.md`
 **Title:** Source and validate stellar catalogue (10 pc minimum)  
 **Area:** Data  
 **Priority:** 🔴 High  
-**Status:** 📋 Open  
-**File(s):** `data/stars-10pc.json`
+**Status:** ✅ Closed  
+**File(s):** `public/data/stars-10pc.json`, `public/data/stars-50pc.json`, `public/data/stars-100pc.json`
 
 **Description:**  
-No stellar data has been sourced yet. The app cannot render stars without a validated catalogue.
-
-**Expected Behaviour:**  
-A JSON file containing all known stars within 10 parsecs of Sol, with accurate galactic Cartesian coordinates and spectral classes.
-
-**Recommended Sources:**
-- RECONS "The 10 Parsec Sample" (public domain astrometry)
-- Gaia DR3 cross-matched with Simbad for spectral types
-- Yale Bright Star Catalogue (for named stars)
+Stellar data sourced from HYG v4.1 and filtered to 10 / 50 / 100 parsecs. Combined size 3.35 MB (< 5 MB limit).
 
 **Acceptance Criteria:**
-- [ ] At least 300 stars in `stars-10pc.json`
-- [ ] Every entry has `id`, `name`, `x`, `y`, `z`, `spec`, `absMag`
-- [ ] Sol is explicitly included at `(0, 0, 0)`
-- [ ] Alpha Centauri, Barnard's Star, Sirius, and Proxima Centauri are present and correctly positioned
+- [x] 325 stars in `stars-10pc.json` (≥ 300 required)
+- [x] Every entry has `id`, `name`, `x`, `y`, `z`, `spec`, `absMag`
+- [x] Sol is explicitly included at `(0, 0, 0)`
+- [x] Alpha Centauri (Rigil Kentaurus + Toliman), Barnard's Star, Sirius, and Proxima Centauri are present and correctly positioned
 
 ---
 
@@ -105,16 +82,16 @@ A JSON file containing all known stars within 10 parsecs of Sol, with accurate g
 **Area:** Rendering  
 **Priority:** 🟠 Medium  
 **Status:** 📋 Open  
-**File(s):** `src/starfield.ts` (future)
+**File(s):** `src/starfield.ts`
 
 **Description:**  
-Drawing 50,000 background particles with a density gradient shader may cause frame drops on Intel UHD or mobile GPUs.
+Drawing 20,000 background particles may cause frame drops on Intel UHD or mobile GPUs.
 
 **Expected Behaviour:**  
 Maintain ≥ 55 FPS on a 3-year-old mid-range laptop with 20,000+ particles.
 
 **Proposed Mitigations:**
-- Use `THREE.Points` with `sizeAttenuation: false`
+- Use `THREE.Points` with `sizeAttenuation: false` ✅
 - Generate particles on a worker thread (if needed)
 - Reduce default count to 10,000 on detected low-end GPUs
 
@@ -125,14 +102,42 @@ Maintain ≥ 55 FPS on a 3-year-old mid-range laptop with 20,000+ particles.
 **Title:** Touch tap vs. drag ambiguity on mobile  
 **Area:** UX  
 **Priority:** 🟡 Low  
-**Status:** 📋 Open  
-**File(s):** `src/input.ts` (future)
+**Status:** ✅ Closed  
+**File(s):** `src/main.ts`
 
 **Description:**  
 On touch devices, a short drag intended to rotate the camera may be misinterpreted as a star-selection tap.
 
 **Expected Behaviour:**  
 Only register a selection if the finger moved less than ~10 pixels between `touchstart` and `touchend`.
+
+**Acceptance Criteria:**
+- [x] Tap threshold < 10 px implemented in touch handlers
+
+---
+
+### QA-005
+
+**Title:** Browser crash guard for large star selections  
+**Area:** Performance  
+**Priority:** 🔴 High  
+**Status:** ✅ Closed  
+**File(s):** `src/selection.ts`, `src/ui.ts`, `src/main.ts`
+
+**Description:**  
+Selection connects every unique pair of stars with `THREE.LineSegments`. This is O(n²). Selecting hundreds of stars generates hundreds of thousands of line segments, which freezes or crashes the browser tab.
+
+**Example:**
+- 10 stars → 45 lines (safe)
+- 50 stars → 1,225 lines (lag)
+- 100 stars → 4,950 lines (severe lag / GPU memory pressure)
+- 1,000 stars → ~500,000 lines (tab crash)
+
+**Implemented Guard:**
+- [x] Default catalogue set to **10 pc** (smallest dataset, 325 stars max)
+- [x] **Warning banner** appears in the Selection panel when ≥ 10 stars are selected:  
+  "⚠️ N stars selected. Connecting lines scale quadratically and may slow down or crash your browser. Consider clearing your selection."
+- [x] Warning is visible and non-blocking; user can still select more stars but is informed of the risk
 
 ---
 
@@ -141,3 +146,4 @@ Only register a selection if the finger moved less than ~10 pixels between `touc
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2026-04-15 | Initial QA document — 4 open items, all spec-only |
+| 1.1 | 2026-04-19 | Closed QA-001, QA-002, QA-004. Added QA-005 (selection crash guard). |

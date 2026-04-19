@@ -5,7 +5,7 @@ import { createStarfield } from './starfield';
 import { StarGroup, createSolMarker } from './stars';
 import { createCompassContainer, updateCompass } from './compass';
 import { SelectionManager } from './selection';
-import { setupUI, updateFPSMeter, updateUnitButton, showSuggestion } from './ui';
+import { setupUI, updateFPSMeter, updateUnitButton, showSuggestion, updateSelectionWarning } from './ui';
 
 const VERSION = '0.1.0';
 
@@ -19,7 +19,7 @@ let currentStarGroup: StarGroup | null = null;
 let selectionManager: SelectionManager | null = null;
 
 const catalogues: Record<CatalogueKey, Star[]> = { '10pc': [], '50pc': [], '100pc': [] };
-let currentCatalogue: CatalogueKey = '100pc';
+let currentCatalogue: CatalogueKey = '10pc';
 let starCount = 200;
 let unit: 'pc' | 'ly' = 'pc';
 
@@ -72,6 +72,8 @@ function rebuildStars(): void {
 function updateSelectionUI(): void {
   if (!ui || !selectionManager) return;
   const ids = Array.from(selectionManager.selectedIds);
+  updateSelectionWarning(ui.selectionWarning, ids.length);
+
   if (ids.length === 0) {
     ui.selectionList.innerHTML = '<div class="selection-empty">No stars selected. Click stars to select.</div>';
     return;

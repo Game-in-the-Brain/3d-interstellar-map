@@ -10,6 +10,7 @@ export interface UIElements {
   selectionPanel: HTMLElement;
   selectionList: HTMLElement;
   clearBtn: HTMLButtonElement;
+  selectionWarning: HTMLElement;
   suggestion: HTMLElement;
   controlsPanel: HTMLElement;
 }
@@ -56,9 +57,9 @@ export function setupUI(
     <div class="control-row">
       <label>Catalogue</label>
       <select id="cat-select" class="ui-select">
-        <option value="10pc">10 pc</option>
+        <option value="10pc" selected>10 pc</option>
         <option value="50pc">50 pc</option>
-        <option value="100pc" selected>100 pc</option>
+        <option value="100pc">100 pc</option>
       </select>
     </div>
     <div class="control-row">
@@ -79,6 +80,7 @@ export function setupUI(
   selectionPanel.classList.add('selection-panel-pos');
   const selBody = selectionPanel.querySelector('.panel-body') as HTMLElement;
   selBody.innerHTML = `
+    <div id="selection-warning" class="selection-warning" style="display:none"></div>
     <div id="selection-list" class="selection-list"></div>
     <button id="clear-btn" class="ui-btn danger">Clear selection</button>
   `;
@@ -97,6 +99,7 @@ export function setupUI(
   const unitToggle = document.getElementById('unit-toggle') as HTMLButtonElement;
   const fpsMeter = document.getElementById('fps-meter') as HTMLElement;
   const selectionList = document.getElementById('selection-list') as HTMLElement;
+  const selectionWarning = document.getElementById('selection-warning') as HTMLElement;
   const clearBtn = document.getElementById('clear-btn') as HTMLButtonElement;
 
   starSlider.addEventListener('input', () => {
@@ -126,6 +129,7 @@ export function setupUI(
     unitToggle,
     selectionPanel,
     selectionList,
+    selectionWarning,
     clearBtn,
     suggestion,
     controlsPanel,
@@ -143,4 +147,14 @@ export function updateUnitButton(el: HTMLButtonElement, unit: 'pc' | 'ly'): void
 
 export function showSuggestion(el: HTMLElement, show: boolean): void {
   el.style.opacity = show ? '1' : '0';
+}
+
+export function updateSelectionWarning(el: HTMLElement, count: number): void {
+  if (count >= 10) {
+    el.style.display = 'block';
+    el.textContent = `⚠️ ${count} stars selected. Connecting lines scale quadratically and may slow down or crash your browser. Consider clearing your selection.`;
+  } else {
+    el.style.display = 'none';
+    el.textContent = '';
+  }
 }

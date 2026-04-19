@@ -186,6 +186,17 @@ input[type="range"] {
   font-style: italic;
 }
 
+.selection-warning {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.35);
+  color: #facc15;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
 .selection-count {
   font-weight: 700;
   margin-bottom: 6px;
