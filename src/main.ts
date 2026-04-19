@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { Star, CatalogueKey } from './types';
 import { createStarfield } from './starfield';
-import { StarGroup, createSolMarker } from './stars';
+import { StarRenderer, createSolMarker, type RenderMode } from './stars';
 import { createCompassContainer, updateCompass } from './compass';
 import { SelectionManager } from './selection';
 import { setupUI, updateFPSMeter, updateUnitButton, showSuggestion, updateSelectionWarning } from './ui';
@@ -15,12 +15,14 @@ let renderer: THREE.WebGLRenderer;
 let controls: OrbitControls;
 let starfield: THREE.Points;
 let solMarker: THREE.Mesh;
-let currentStarGroup: StarGroup | null = null;
+let currentRenderer: StarRenderer | null = null;
 let selectionManager: SelectionManager | null = null;
 
 const catalogues: Record<CatalogueKey, Star[]> = { '10pc': [], '50pc': [], '100pc': [] };
 let currentCatalogue: CatalogueKey = '10pc';
 let starCount = 200;
+let renderMode: RenderMode = 'points';
+let sphereScale = 1.0;
 let unit: 'pc' | 'ly' = 'pc';
 
 // FPS tracking
@@ -52,26 +54,26 @@ function rebuildStars(): void {
   const stars = catalogues[currentCatalogue];
   const count = Math.min(starCount, stars.length);
 
-  if (currentStarGroup) {
-    scene.remove(currentStarGroup.group);
-    currentStarGroup.dispose();
+  if (currentRenderer) {
+    scene.remove(currentRenderer.group);
+    currentRenderer.dispose();
   }
 
-  currentStarGroup = new StarGroup(stars, count);
-  scene.add(currentStarGroup.group);
+  currentRenderer = new StarRenderer(stars, count, renderMode, sphereScale);
+  scene.add(currentRenderer.group);
 
   if (!selectionManager) {
-    selectionManager = new SelectionManager(scene, camera, currentStarGroup.group);
-  } else {
-    selectionManager.updateStarGroup(currentStarGroup.group);
+    selectionManager = new SelectionManager(scene, camera);
   }
+  selectionManager.setRenderer(currentRenderer);
 
   updateSelectionUI();
 }
 
 function updateSelectionUI(): void {
-  if (!ui || !selectionManager) return;
+  if (!ui || !selectionManager || !currentRenderer) return;
   const ids = Array.from(selectionManager.selectedIds);
+  currentRenderer.setSelection(selectionManager.selectedIds);
   updateSelectionWarning(ui.selectionWarning, ids.length);
 
   if (ids.length === 0) {
@@ -101,7 +103,6 @@ function onResize(): void {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  // Re-seed starfield deterministically from canvas dimensions
   if (starfield) {
     scene.remove(starfield);
     starfield.geometry.dispose();
@@ -165,6 +166,20 @@ function onCatalogueChange(key: CatalogueKey): void {
   rebuildStars();
 }
 
+function onRenderModeChange(mode: RenderMode): void {
+  renderMode = mode;
+  if (currentRenderer) {
+    currentRenderer.setMode(mode);
+  }
+}
+
+function onSphereScaleChange(scale: number): void {
+  sphereScale = scale;
+  if (currentRenderer) {
+    currentRenderer.setSphereScale(scale);
+  }
+}
+
 function onUnitToggle(): void {
   unit = unit === 'pc' ? 'ly' : 'pc';
   if (ui) updateUnitButton(ui.unitToggle, unit);
@@ -208,7 +223,7 @@ function animate(): void {
     }
   }
 
-  // Rotate Sol ring
+  // Rotate Sol ring to face camera
   if (solMarker) {
     const ring = solMarker.children.find(c => c.userData.isSolRing) as THREE.Mesh | undefined;
     if (ring) {
@@ -280,7 +295,15 @@ function init(): void {
   }
 
   // UI
-  ui = setupUI(VERSION, onStarCountChange, onCatalogueChange, onUnitToggle, onClear);
+  ui = setupUI(
+    VERSION,
+    onStarCountChange,
+    onCatalogueChange,
+    onRenderModeChange,
+    onSphereScaleChange,
+    onUnitToggle,
+    onClear
+  );
 
   // Events
   window.addEventListener('resize', onResize);

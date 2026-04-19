@@ -122,6 +122,10 @@ html, body, #app {
   gap: 4px;
 }
 
+.control-row.hidden {
+  display: none;
+}
+
 .control-row label {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.65);

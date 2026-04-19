@@ -1,4 +1,5 @@
 import type { CatalogueKey } from './types';
+import type { RenderMode } from './stars';
 
 export interface UIElements {
   versionBadge: HTMLElement;
@@ -6,11 +7,15 @@ export interface UIElements {
   starSlider: HTMLInputElement;
   starSliderValue: HTMLElement;
   catalogueSelect: HTMLSelectElement;
+  renderModeSelect: HTMLSelectElement;
+  sphereScaleSlider: HTMLInputElement;
+  sphereScaleValue: HTMLElement;
+  sphereScaleRow: HTMLElement;
   unitToggle: HTMLButtonElement;
   selectionPanel: HTMLElement;
   selectionList: HTMLElement;
-  clearBtn: HTMLButtonElement;
   selectionWarning: HTMLElement;
+  clearBtn: HTMLButtonElement;
   suggestion: HTMLElement;
   controlsPanel: HTMLElement;
 }
@@ -38,6 +43,8 @@ export function setupUI(
   version: string,
   onStarCountChange: (n: number) => void,
   onCatalogueChange: (key: CatalogueKey) => void,
+  onRenderModeChange: (mode: RenderMode) => void,
+  onSphereScaleChange: (scale: number) => void,
   onUnitToggle: () => void,
   onClear: () => void
 ): UIElements {
@@ -61,6 +68,17 @@ export function setupUI(
         <option value="50pc">50 pc</option>
         <option value="100pc">100 pc</option>
       </select>
+    </div>
+    <div class="control-row">
+      <label>Render</label>
+      <select id="render-mode" class="ui-select">
+        <option value="points" selected>Points (emissive)</option>
+        <option value="spheres">Spheres (3D)</option>
+      </select>
+    </div>
+    <div class="control-row" id="sphere-scale-row" style="display:none">
+      <label>Sphere scale <span id="sphere-scale-val">1.0</span></label>
+      <input id="sphere-scale" type="range" min="0.3" max="3.0" step="0.1" value="1.0" />
     </div>
     <div class="control-row">
       <label>Stars <span id="slider-val">200</span></label>
@@ -96,6 +114,10 @@ export function setupUI(
   const starSlider = document.getElementById('star-slider') as HTMLInputElement;
   const starSliderValue = document.getElementById('slider-val') as HTMLElement;
   const catalogueSelect = document.getElementById('cat-select') as HTMLSelectElement;
+  const renderModeSelect = document.getElementById('render-mode') as HTMLSelectElement;
+  const sphereScaleSlider = document.getElementById('sphere-scale') as HTMLInputElement;
+  const sphereScaleValue = document.getElementById('sphere-scale-val') as HTMLElement;
+  const sphereScaleRow = document.getElementById('sphere-scale-row') as HTMLElement;
   const unitToggle = document.getElementById('unit-toggle') as HTMLButtonElement;
   const fpsMeter = document.getElementById('fps-meter') as HTMLElement;
   const selectionList = document.getElementById('selection-list') as HTMLElement;
@@ -112,6 +134,18 @@ export function setupUI(
     onCatalogueChange(catalogueSelect.value as CatalogueKey);
   });
 
+  renderModeSelect.addEventListener('change', () => {
+    const mode = renderModeSelect.value as RenderMode;
+    sphereScaleRow.style.display = mode === 'spheres' ? 'flex' : 'none';
+    onRenderModeChange(mode);
+  });
+
+  sphereScaleSlider.addEventListener('input', () => {
+    const val = parseFloat(sphereScaleSlider.value);
+    sphereScaleValue.textContent = val.toFixed(1);
+    onSphereScaleChange(val);
+  });
+
   unitToggle.addEventListener('click', () => {
     onUnitToggle();
   });
@@ -126,6 +160,10 @@ export function setupUI(
     starSlider,
     starSliderValue,
     catalogueSelect,
+    renderModeSelect,
+    sphereScaleSlider,
+    sphereScaleValue,
+    sphereScaleRow,
     unitToggle,
     selectionPanel,
     selectionList,

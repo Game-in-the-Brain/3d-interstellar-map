@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { PC_TO_LY } from './coordinateUtils';
+import type { StarRenderer } from './stars';
 
 export class SelectionManager {
   selectedIds: Set<string> = new Set();
@@ -7,56 +8,50 @@ export class SelectionManager {
   private raycaster = new THREE.Raycaster();
   private mouse = new THREE.Vector2();
   private starPositions = new Map<string, THREE.Vector3>();
-  private starGroup: THREE.Group;
+  private renderer: StarRenderer | null = null;
 
   constructor(
     scene: THREE.Scene,
     private camera: THREE.PerspectiveCamera,
-    starGroup: THREE.Group
   ) {
     this.linesGroup = new THREE.Group();
     scene.add(this.linesGroup);
-    this.starGroup = starGroup;
-    this.updateStarGroup(starGroup);
   }
 
-  updateStarGroup(starGroup: THREE.Group): void {
-    this.starGroup = starGroup;
+  setRenderer(renderer: StarRenderer): void {
+    this.renderer = renderer;
     this.starPositions.clear();
-    for (const child of starGroup.children) {
-      if (child instanceof THREE.InstancedMesh) {
-        for (const [key, val] of Object.entries(child.userData)) {
-          if (key.startsWith('star_')) {
-            const id = key.slice(5);
-            const idx = val as number;
-            const mat = new THREE.Matrix4();
-            child.getMatrixAt(idx, mat);
-            const pos = new THREE.Vector3();
-            pos.setFromMatrixPosition(mat);
-            this.starPositions.set(id, pos);
-          }
-        }
-      }
+    const positions = renderer.getAllPositions();
+    for (const [id, pos] of positions) {
+      this.starPositions.set(id, pos.clone());
     }
     this.updateLines();
   }
 
   onPointerDown(clientX: number, clientY: number): boolean {
+    if (!this.renderer) return false;
     this.mouse.x = (clientX / window.innerWidth) * 2 - 1;
     this.mouse.y = -(clientY / window.innerHeight) * 2 + 1;
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
-    const intersects = this.raycaster.intersectObjects(this.starGroup.children, false);
-    if (intersects.length > 0 && intersects[0].object instanceof THREE.InstancedMesh && intersects[0].instanceId !== undefined) {
-      const mesh = intersects[0].object as THREE.InstancedMesh;
-      const instanceId = intersects[0].instanceId;
+    const intersects = this.raycaster.intersectObjects(this.renderer.group.children, false);
+    if (intersects.length > 0) {
+      const hit = intersects[0];
       let starId: string | null = null;
-      for (const [key, val] of Object.entries(mesh.userData)) {
-        if (val === instanceId && key.startsWith('star_')) {
-          starId = key.slice(5);
-          break;
+
+      if (hit.object instanceof THREE.InstancedMesh && hit.instanceId !== undefined) {
+        const mesh = hit.object as THREE.InstancedMesh;
+        const instanceId = hit.instanceId;
+        for (const [key, val] of Object.entries(mesh.userData)) {
+          if (val === instanceId && key.startsWith('star_')) {
+            starId = key.slice(5);
+            break;
+          }
         }
+      } else if (hit.object instanceof THREE.Points && hit.index !== undefined) {
+        starId = this.renderer.getStarIdAtIndex(hit.index);
       }
+
       if (starId) {
         if (this.selectedIds.has(starId)) {
           this.selectedIds.delete(starId);
@@ -119,7 +114,11 @@ export class SelectionManager {
     if (positions.length === 0) return;
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    const mat = new THREE.LineBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.7 });
+    const mat = new THREE.LineBasicMaterial({
+      color: 0xaaffff,
+      transparent: true,
+      opacity: 0.85,
+    });
     this.linesGroup.add(new THREE.LineSegments(geo, mat));
   }
 }
