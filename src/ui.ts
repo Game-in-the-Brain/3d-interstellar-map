@@ -30,6 +30,7 @@ export interface UIElements {
   contextTitle: HTMLElement;
   contextJson: HTMLElement;
   context2dLink: HTMLAnchorElement;
+  contextMwgLink: HTMLAnchorElement;
   contextExportBtn: HTMLButtonElement;
   contextCloseBtn: HTMLButtonElement;
   suggestion: HTMLElement;
@@ -138,6 +139,12 @@ export function setupUI(
       </label>
     </div>
     <div class="control-row">
+      <label class="ui-btn file-btn" style="width:100%; justify-content:center">
+        🪐 Import MWG Systems
+        <input id="mwg-import-btn" type="file" accept=".json" style="display:none" />
+      </label>
+    </div>
+    <div class="control-row">
       <div id="fps-meter" class="fps-green">-- FPS</div>
     </div>
   `;
@@ -168,6 +175,7 @@ export function setupUI(
       <pre id="context-json" class="context-json"></pre>
       <div class="context-actions">
         <a id="context-2d-link" href="#" target="_blank" rel="noopener noreferrer" class="btn crosslink-btn" style="width:auto">🗺️ Open 2D Map</a>
+        <a id="context-mwg-link" href="#" target="_blank" rel="noopener noreferrer" class="btn crosslink-btn" style="width:auto; display:none">🪐 Open in MWG</a>
         <button id="context-export" class="ui-btn">💾 Export this star</button>
       </div>
     </div>
@@ -212,6 +220,7 @@ export function setupUI(
   const contextTitle = document.getElementById('context-title') as HTMLElement;
   const contextJson = document.getElementById('context-json') as HTMLElement;
   const context2dLink = document.getElementById('context-2d-link') as HTMLAnchorElement;
+  const contextMwgLink = document.getElementById('context-mwg-link') as HTMLAnchorElement;
   const contextExportBtn = document.getElementById('context-export') as HTMLButtonElement;
   const contextCloseBtn = document.getElementById('context-close') as HTMLButtonElement;
 
@@ -326,6 +335,7 @@ export function setupUI(
     contextTitle,
     contextJson,
     context2dLink,
+    contextMwgLink,
     contextExportBtn,
     contextCloseBtn,
     suggestion,

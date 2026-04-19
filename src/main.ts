@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { Star, CatalogueKey, MapState } from './types';
+import type { MnemeSystemExport } from './mnemeSystem';
+import { isMnemeSystemExport } from './mnemeSystem';
 import { createStarfield } from './starfield';
 import { StarRenderer, createSolMarker, type RenderMode } from './stars';
 import { createCompassContainer, updateCompass } from './compass';
@@ -15,7 +17,7 @@ import {
   hideContextPanel,
 } from './ui';
 
-const VERSION = '0.1.1';
+const VERSION = '0.1.2';
 
 let scene: THREE.Scene;
 let camera: THREE.PerspectiveCamera;
@@ -34,6 +36,9 @@ let sphereScale = 1.0;
 let brightness = 1.0;
 let unit: 'pc' | 'ly' = 'pc';
 let showNames = false;
+
+// MWG system data cache (starId -> MWG StarSystem)
+const mwgSystems = new Map<string, Record<string, unknown>>();
 
 // Label elements cache
 const labelEls = new Map<string, HTMLElement>();
@@ -327,19 +332,91 @@ function onExportStars(): void {
       stars.push(star);
     }
   }
-  const blob = new Blob([JSON.stringify(stars, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `stars-${currentCatalogue}-${stars.length}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+
+  // If any selected stars have MWG data, export in MnemeSystemExport format
+  const hasMwgData = stars.some(s => mwgSystems.has(s.id));
+  if (hasMwgData) {
+    const exportData: MnemeSystemExport = {
+      mnemeFormat: 'star-system-batch',
+      version: VERSION,
+      source: '3d-interstellar-map',
+      exportedAt: new Date().toISOString(),
+      systems: stars.map(s => ({
+        starId: s.id,
+        name: s.name,
+        x: s.x,
+        y: s.y,
+        z: s.z,
+        spec: s.spec,
+        absMag: s.absMag,
+        mwgSystem: mwgSystems.get(s.id),
+      })),
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mneme-systems-${stars.length}-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } else {
+    // Plain star export (backward compatible)
+    const blob = new Blob([JSON.stringify(stars, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `stars-${currentCatalogue}-${stars.length}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 }
 
 async function onImportStars(file: File): Promise<void> {
   try {
     const text = await file.text();
-    const data = JSON.parse(text) as Star[];
+    const parsed = JSON.parse(text);
+
+    // Check if this is a MnemeSystemExport (from MWG or 3D map with systems)
+    if (isMnemeSystemExport(parsed)) {
+      const entries = parsed.systems;
+      if (!Array.isArray(entries) || entries.length === 0) {
+        alert('Invalid Mneme export: no systems found');
+        return;
+      }
+      // Extract star data
+      const stars: Star[] = entries.map((e: Record<string, unknown>) => ({
+        id: String(e.starId),
+        name: String(e.name),
+        x: Number(e.x),
+        y: Number(e.y),
+        z: Number(e.z),
+        spec: String(e.spec),
+        absMag: Number(e.absMag),
+      }));
+      // Store MWG system data
+      for (const entry of entries) {
+        if (entry.mwgSystem && typeof entry.mwgSystem === 'object') {
+          mwgSystems.set(String(entry.starId), entry.mwgSystem as Record<string, unknown>);
+        }
+      }
+      const key = `custom-${Date.now()}` as CatalogueKey;
+      catalogues[key] = stars;
+      currentCatalogue = key;
+      starCount = stars.length;
+      if (ui) {
+        ui.catalogueSelect.innerHTML += `<option value="${key}">Custom — ${file.name}</option>`;
+        ui.catalogueSelect.value = key;
+        ui.starSlider.max = String(stars.length);
+        ui.starSlider.value = String(stars.length);
+        ui.starSliderValue.textContent = String(stars.length);
+      }
+      rebuildStars();
+      alert(`Imported ${stars.length} stars with ${entries.filter((e: Record<string, unknown>) => e.mwgSystem).length} MWG systems`);
+      return;
+    }
+
+    // Plain star array
+    const data = parsed as Star[];
     if (!Array.isArray(data) || data.length === 0) {
       alert('Invalid JSON: expected an array of stars');
       return;
@@ -364,6 +441,8 @@ async function onImportStars(file: File): Promise<void> {
     alert('Failed to parse JSON file');
   }
 }
+
+
 
 function buildMapState(): MapState {
   return {
