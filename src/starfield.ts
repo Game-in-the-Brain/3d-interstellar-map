@@ -14,9 +14,10 @@ export function createStarfield(count: number = 20000, seed: number = 42): THREE
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
 
-  const k = 0.015;
-  const rMin = 80;
-  const rMax = 200;
+  // Stronger coreward density bias, tighter shell for visible gradient
+  const k = 0.03;
+  const rMin = 40;
+  const rMax = 120;
   const maxWeight = Math.exp(k * rMax);
   const colorObj = new THREE.Color();
 
@@ -43,9 +44,13 @@ export function createStarfield(count: number = 20000, seed: number = 42): THREE
     positions[i * 3 + 1] = y;
     positions[i * 3 + 2] = z;
 
-    // Slight colour variation for depth
-    const temp = 0.5 + rng() * 0.5;
-    colorObj.setHSL(0.6 + rng() * 0.15, 0.2, temp);
+    // Directional colour tinge:
+    // +Y Spinward → bluish, -Y Tailward → reddish
+    const yNorm = Math.max(-1, Math.min(1, y / rMax));
+    const hue = yNorm > 0 ? 0.6 : 0.0;
+    const sat = Math.abs(yNorm) * 0.35 + rng() * 0.1;
+    const light = 0.55 + rng() * 0.35;
+    colorObj.setHSL(hue, sat, light);
     colors[i * 3] = colorObj.r;
     colors[i * 3 + 1] = colorObj.g;
     colors[i * 3 + 2] = colorObj.b;
