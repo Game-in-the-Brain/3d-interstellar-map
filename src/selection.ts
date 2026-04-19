@@ -39,6 +39,13 @@ export class SelectionManager {
     this.updateLines();
   }
 
+  private isVisible(worldPos: THREE.Vector3): boolean {
+    const projected = worldPos.clone().project(this.camera);
+    const x = (projected.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (-projected.y * 0.5 + 0.5) * window.innerHeight;
+    return projected.z < 1 && x >= -20 && x <= window.innerWidth + 20 && y >= -20 && y <= window.innerHeight + 20;
+  }
+
   onPointerDown(clientX: number, clientY: number, button: number = 0): PointerResult {
     if (!this.renderer) return { handled: false, starId: null, isDouble: false, isRightClick: false };
     this.mouse.x = (clientX / window.innerWidth) * 2 - 1;
@@ -48,19 +55,39 @@ export class SelectionManager {
     const intersects = this.raycaster.intersectObjects(this.renderer.group.children, false);
     let starId: string | null = null;
 
-    if (intersects.length > 0) {
-      const hit = intersects[0];
+    for (const hit of intersects) {
+      let candidateId: string | null = null;
+      let worldPos: THREE.Vector3 | null = null;
+
       if (hit.object instanceof THREE.InstancedMesh && hit.instanceId !== undefined) {
         const mesh = hit.object as THREE.InstancedMesh;
         const instanceId = hit.instanceId;
         for (const [key, val] of Object.entries(mesh.userData)) {
           if (val === instanceId && key.startsWith('star_')) {
-            starId = key.slice(5);
+            candidateId = key.slice(5);
             break;
           }
         }
+        if (candidateId) {
+          const mat = new THREE.Matrix4();
+          mesh.getMatrixAt(instanceId, mat);
+          worldPos = new THREE.Vector3().setFromMatrixPosition(mat);
+        }
       } else if (hit.object instanceof THREE.Points && hit.index !== undefined) {
-        starId = this.renderer.getStarIdAtIndex(hit.index);
+        candidateId = this.renderer.getStarIdAtIndex(hit.index);
+        if (candidateId) {
+          const positions = hit.object.geometry.attributes.position as THREE.BufferAttribute;
+          worldPos = new THREE.Vector3(
+            positions.getX(hit.index),
+            positions.getY(hit.index),
+            positions.getZ(hit.index)
+          );
+        }
+      }
+
+      if (candidateId && worldPos && this.isVisible(worldPos)) {
+        starId = candidateId;
+        break;
       }
     }
 
