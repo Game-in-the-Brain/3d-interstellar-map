@@ -90,7 +90,7 @@ For each star generated in the previous pass:
 1. Roll **star count** for this pass (e.g., 1D3)
 2. For each child:
    a. Roll **d6666** → map to 360° XY azimuth (~0.278° resolution)
-   b. Roll **d6666** → map to 360° Z elevation (~0.139° resolution)
+   b. Roll **d66** → consult Spherical Volume Bell Curve table for Z elevation (cosine-weighted toward equator)
    c. Roll **distance** in light years (e.g., 2D6)
    d. Convert spherical → cartesian:
       ```
@@ -264,7 +264,8 @@ When a user saves a 2D map page from the 2D map viewer, it syncs to the 3D map's
 
 | Question | Default Decision |
 |---|---|
-| d6666 → 360° mapping | Recursive Sextet Protocol: two nested d66 rolls per axis. Primary d66 selects broad cone (36 sectors), secondary d66 selects sub-direction (36 subdivisions). Total 1,296 outcomes per axis. See `RECURSIVE_SEXTET_PROTOCOL.md`. |
+| d6666 → 360° mapping | Recursive Sextet Protocol: two nested d66 rolls for XY azimuth. Primary d66 selects broad cone (36 sectors), secondary d66 selects sub-direction (36 subdivisions). Total 1,296 outcomes. See `RECURSIVE_SEXTET_PROTOCOL.md`. |
+| Z-elevation bell curve | d66 mapped to 6 cosine-weighted bands (pole→mid→equator). Prevents polar clustering by assigning more outcomes to equatorial regions. |
 | Name generation | Origin → Origin-A → Origin-A-1. User can rename any star. |
 | Max stars hard limit | 500 stars (performance guard). |
 | Regenerate single star | Allowed; re-rolls class/grade only, keeps position. |

@@ -3,7 +3,7 @@
  * Mirrors MWG's star generation tables and dice notation.
  */
 
-import { rollSum, rollD3, rollD6666, d6666ToDegrees, d6666ToElevation } from './dice';
+import { rollSum, rollD3, rollD66, rollD6666, d6666ToDegrees, d66ToElevationBellCurve } from './dice';
 
 // =====================
 // Stellar Types
@@ -138,8 +138,8 @@ export interface GeneratedStar {
     gradeRoll: number;
     /** Recursive Sextet Protocol: [d66, d66] → 1,296 outcomes for XY azimuth */
     xyRoll: [number, number];
-    /** Recursive Sextet Protocol: [d66, d66] → 1,296 outcomes for Z elevation */
-    zRoll: [number, number];
+    /** Spherical Volume Bell Curve: d66 → cosine-weighted elevation */
+    zRoll: number;
     distanceRoll: number;
   };
   /** Distance from parent in light years */
@@ -219,27 +219,39 @@ function sphericalToCartesian(azimuthDeg: number, elevationDeg: number, distance
  *
  * Formula: baseCount × (distanceMultiplier³ × countMultiplier)^(pass-1)
  */
+/**
+ * QA-007: Star count per pass using the Square-Cube Law.
+ *
+ * Pass 1: dice roll (1d6 for average, 1d3 for sparse, 1d6+2 for dense).
+ * Pass 2: fixed 7 children per parent. Shell R→2R has 7× the volume of
+ *         the inner sphere, so 7× the stars.
+ * Pass 3+: fixed 8 children per parent. Shell 2R→4R has 56× the volume
+ *          of the inner sphere; with 7× as many parents, each gets 8.
+ *
+ * This caps Pass 2 at a manageable 42 stars (7×6) instead of cubing
+ * the dice roll, which could produce 216+ stars.
+ */
 function rollStarCount(params: GenerationParameters, pass: number): number {
-  let count: number;
-  if (params.density === 'sparse') {
-    count = rollD3();
-  } else if (params.density === 'dense') {
-    count = rollSum(1) + 2; // 1D6+2
-  } else {
-    count = rollSum(1); // 1D6
+  if (pass === 1) {
+    if (params.density === 'sparse') {
+      return rollD3();
+    } else if (params.density === 'dense') {
+      return rollSum(1) + 2; // 1D6+2
+    } else {
+      return rollSum(1); // 1D6
+    }
   }
 
-  // Sphere-corrected growth: volume ∝ r³
-  // Natural density factor = distanceMultiplier³
-  // User's countMultiplier acts as a density modifier (1.0 = natural)
-  const sphereFactor = Math.pow(params.distanceMultiplier, 3);
-  const effectiveMultiplier = sphereFactor * params.starCountMultiplier;
-
-  if (pass > 1) {
-    count = Math.round(count * Math.pow(effectiveMultiplier, pass - 1));
+  // Pass 2: shell R→mR volume = (m³ - 1) × inner sphere.
+  // For m=2 (default): 8 - 1 = 7 children per parent.
+  if (pass === 2) {
+    const shellFactor = Math.pow(params.distanceMultiplier, 3) - 1;
+    return Math.max(1, Math.round(shellFactor));
   }
 
-  return Math.max(1, count);
+  // Pass 3+: each subsequent doubling adds ~8× the previous pass count.
+  // For m=2: shell 2R→4R = 64 - 8 = 56; divided by 7 parents = 8.
+  return 8;
 }
 
 /**
@@ -290,7 +302,7 @@ export function generateStarMap(
       classRoll: originProps.classRoll,
       gradeRoll: originProps.gradeRoll,
       xyRoll: [0, 0],
-      zRoll: [0, 0],
+      zRoll: 0,
       distanceRoll: 0,
     },
     distanceFromParent: 0,
@@ -309,10 +321,11 @@ export function generateStarMap(
       for (let i = 0; i < childCount; i++) {
         const props = generateStarProperties(classTable, gradeTable);
         const xyRoll = rollD6666();
-        const zRoll = rollD6666();
+        const zRoll = rollD66();
         const distanceRoll = rollDistance(params, pass);
         const azimuth = d6666ToDegrees(xyRoll);
-        const elevation = d6666ToElevation(zRoll);
+        // QA-007: Z-elevation uses bell curve table (cosine-weighted)
+        const elevation = d66ToElevationBellCurve(zRoll);
         const offset = sphericalToCartesian(azimuth, elevation, distanceRoll);
 
         const star: GeneratedStar = {

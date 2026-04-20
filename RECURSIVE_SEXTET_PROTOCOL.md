@@ -154,21 +154,43 @@ This is the RPG equivalent of a **vector image** — the more layers you add, th
 
 ---
 
-## 6. Comparison: Before vs After
+## 6. Z-Plane: Spherical Volume Bell Curve (QA-007)
 
-| Property | d66 (old) | d6666 (RSP) |
+The XY azimuth uses flat RSP (`d6666`) because every compass direction has equal angular width.
+
+The Z elevation **does not** use flat RSP. A flat distribution would cluster stars at the poles because the sphere has more surface area near the equator than near the poles. Instead, elevation uses a **cosine-weighted bell curve** mapped from a single `d66`:
+
+| d66 Roll | Region | Inclination (from North Pole) |
 |---|---|---|
-| XY outcomes | 36 | 1,296 |
-| XY step | 10° | ~0.278° |
-| Z outcomes | 36 | 1,296 |
-| Z step | ~5.14° | ~0.139° |
-| Visual clustering | Noticeable wedges | Uniform scatter |
-| Dice per star | 2 | 4 |
-| Roll notation | `d66` + `d66` | `d6666` + `d6666` |
+| 11–12 | North Pole | 0°–30° |
+| 13–22 | North Mid-Latitudes | 31°–60° |
+| 23–36 | North Equator | 61°–90° |
+| 41–54 | South Equator | 91°–120° |
+| 55–64 | South Mid-Latitudes | 121°–150° |
+| 65–66 | South Pole | 151°–180° |
+
+- Poles: 2 outcomes each (5.6%) — narrow bands
+- Mid-latitudes: 6 outcomes each (16.7%) — medium bands  
+- Equator: 10 outcomes each (27.8%) — wide bands
+
+This forces stars to concentrate near the equatorial plane, matching the physical distribution of surface area on a sphere.
 
 ---
 
-## 7. Future Extensions
+## 7. Comparison: Before vs After
+
+| Property | d66 (old) | d6666 + Bell Curve |
+|---|---|---|
+| XY outcomes | 36 | 1,296 |
+| XY step | 10° | ~0.278° |
+| Z distribution | Flat (polar clustering) | Bell curve (equatorial) |
+| Visual clustering | Noticeable wedges + poles | Uniform sphere scatter |
+| Dice per star | 2 | 3 (d6666 + d66) |
+| Roll notation | `d66` + `d66` | `d6666` + `d66` |
+
+---
+
+## 8. Future Extensions
 
 - **Depth 3 (`d666666`):** 46,656 outcomes per axis. Overkill for stellar distances but useful for intra-system body placement (moon orbits, Lagrange points).
 - **Lazy loading:** Only roll secondary `d66` when the player "zooms in" on a specific sector.

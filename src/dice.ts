@@ -82,3 +82,58 @@ export function d6666ToDegrees(d6666: [number, number]): number {
 export function d6666ToElevation(d6666: [number, number]): number {
   return (d6666ToIndex(d6666) * 180) / 1296 - 90;
 }
+
+// =====================
+// Spherical Volume Bell Curve (Z-Plane)
+// =====================
+
+/**
+ * QA-007: Z-Plane Bell Curve Lookup Table
+ * Maps d66 (11-66) to elevation bands weighted toward the equator.
+ * Prevents polar clustering by simulating the cosine of the vertical angle.
+ *
+ * Band distribution:
+ *   Poles:       2 outcomes each  (5.6%)  → narrow bands
+ *   Mid-lats:    6 outcomes each  (16.7%) → medium bands
+ *   Equator:    10 outcomes each  (27.8%) → wide bands
+ *
+ * Within each band, a d20 provides fine-tuning.
+ */
+const ELEVATION_BANDS: Array<{ d66Min: number; d66Max: number; angleMin: number; angleMax: number }> = [
+  { d66Min: 11, d66Max: 12, angleMin:   0, angleMax:  30 }, // North Pole
+  { d66Min: 13, d66Max: 22, angleMin:  31, angleMax:  60 }, // North Mid-Latitudes
+  { d66Min: 23, d66Max: 36, angleMin:  61, angleMax:  90 }, // North Equator
+  { d66Min: 41, d66Max: 54, angleMin:  91, angleMax: 120 }, // South Equator
+  { d66Min: 55, d66Max: 64, angleMin: 121, angleMax: 150 }, // South Mid-Latitudes
+  { d66Min: 65, d66Max: 66, angleMin: 151, angleMax: 180 }, // South Pole
+];
+
+function findElevationBand(d66: number): { angleMin: number; angleMax: number } | null {
+  for (const band of ELEVATION_BANDS) {
+    if (d66 >= band.d66Min && d66 <= band.d66Max) {
+      return { angleMin: band.angleMin, angleMax: band.angleMax };
+    }
+  }
+  return null;
+}
+
+/**
+ * Convert d66 to inclination angle (0°–180° from North Pole) using the
+ * Spherical Volume Bell Curve table. Returns degrees with d20 fine-tuning.
+ *
+ * To get elevation (-90° to +90°): subtract 90 from the result.
+ */
+export function d66ToInclinationBellCurve(d66: number): number {
+  const band = findElevationBand(d66);
+  if (!band) return 90; // fallback to equator
+  // Fine-tune within the band using a uniform random offset
+  // (In a tabletop context, the GM rolls 1d20 and adds to angleMin)
+  const range = band.angleMax - band.angleMin + 1;
+  const offset = Math.floor(Math.random() * range);
+  return band.angleMin + offset;
+}
+
+/** Convenience wrapper: returns elevation in degrees (-90° to +90°) */
+export function d66ToElevationBellCurve(d66: number): number {
+  return d66ToInclinationBellCurve(d66) - 90;
+}
