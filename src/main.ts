@@ -281,6 +281,29 @@ function showStarContextPanel(star: Star): void {
   ui.contextTitle.textContent = star.name || `Star ${star.id}`;
   ui.contextJson.textContent = JSON.stringify(display, null, 2);
   ui.context2dLink.href = `https://game-in-the-brain.github.io/2d-star-system-map/?starId=${encodeURIComponent(star.id)}`;
+  ui.context2dLink.onclick = (e) => {
+    e.preventDefault();
+    // Push MWG data to shared localStorage so 2D map can load it
+    const mwgData = mwgSystems.get(star.id);
+    if (mwgData) {
+      const payload = {
+        starSystem: mwgData,
+        starfieldSeed: String(star.id).replace(/[^a-zA-Z0-9]/g, '').slice(0, 8) || 'SEED0000',
+        epoch: { year: 2300, month: 1, day: 1 },
+      };
+      const savedPage = {
+        starId: star.id,
+        starName: star.name || `${star.id}`,
+        savedAt: new Date().toISOString(),
+        payload,
+        mwgSystem: mwgData,
+        gmNotes: '',
+        version: VERSION,
+      };
+      localStorage.setItem(`mneme-2dmap-${star.id}`, JSON.stringify(savedPage));
+    }
+    window.open(ui!.context2dLink.href, '_blank');
+  };
   ui.contextExportBtn.onclick = () => exportSingleStar(star);
   if (ui.contextLoadMwgBtn) {
     ui.contextLoadMwgBtn.onchange = (e) => {
