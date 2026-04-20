@@ -51,6 +51,9 @@ export interface UIElements {
   tablesPanel: HTMLElement;
   classTableEl: HTMLElement;
   gradeTableEl: HTMLElement;
+  exportMnemeMapBtn: HTMLButtonElement;
+  importMnemeMapBtn: HTMLInputElement;
+  contextLoadMwgBtn: HTMLInputElement;
 }
 
 function createPanel(id: string, title: string, collapsedDefault: boolean): HTMLElement {
@@ -90,7 +93,9 @@ export function setupUI(
   onImportStars: (file: File) => void,
   onClear: () => void,
   onModeChange: (mode: AppMode) => void,
-  onGenerate: (params: GenerationParameters) => void
+  onGenerate: (params: GenerationParameters) => void,
+  onExportMnemeMap: () => void,
+  onImportMnemeMap: (file: File) => void
 ): UIElements {
   const app = document.getElementById('app')!;
 
@@ -162,6 +167,13 @@ export function setupUI(
       </div>
       <div class="control-row">
         <button id="generate-btn" class="ui-btn" style="width:100%; background:#2a5a3a; color:#fff">🎲 Generate New Map</button>
+      </div>
+      <div class="control-row row-horizontal" style="margin-top:4px">
+        <button id="export-mneme-map-btn" class="ui-btn" style="flex:1">💾 Export .mneme-map</button>
+        <label class="ui-btn file-btn" style="flex:1; justify-content:center">
+          📂 Import .mneme-map
+          <input id="import-mneme-map-btn" type="file" accept=".mneme-map,.json" style="display:none" />
+        </label>
       </div>
     </div>
 
@@ -245,6 +257,10 @@ export function setupUI(
         <a id="context-2d-link" href="#" target="_blank" rel="noopener noreferrer" class="btn crosslink-btn" style="width:auto">🗺️ Open 2D Map</a>
         <a id="context-mwg-link" href="#" target="_blank" rel="noopener noreferrer" class="btn crosslink-btn" style="width:auto; display:none">🪐 Open in MWG</a>
         <button id="context-export" class="ui-btn">💾 Export this star</button>
+        <label class="btn crosslink-btn" style="width:auto; cursor:pointer">
+          📂 Load MWG JSON
+          <input id="context-load-mwg" type="file" accept=".json" style="display:none" />
+        </label>
       </div>
     </div>
   `;
@@ -270,6 +286,9 @@ export function setupUI(
   const tablesPanel = document.getElementById('tables-panel') as HTMLElement;
   const classTableEl = document.getElementById('class-table') as HTMLElement;
   const gradeTableEl = document.getElementById('grade-table') as HTMLElement;
+  const exportMnemeMapBtn = document.getElementById('export-mneme-map-btn') as HTMLButtonElement;
+  const importMnemeMapBtn = document.getElementById('import-mneme-map-btn') as HTMLInputElement;
+  const contextLoadMwgBtn = document.getElementById('context-load-mwg') as HTMLInputElement;
   const densitySelect = document.getElementById('density-select') as HTMLSelectElement;
   const passesSlider = document.getElementById('passes-slider') as HTMLInputElement;
   const passesValue = document.getElementById('passes-val') as HTMLElement;
@@ -429,6 +448,16 @@ export function setupUI(
     onGenerate(params);
   });
 
+  exportMnemeMapBtn.addEventListener('click', () => {
+    onExportMnemeMap();
+  });
+
+  importMnemeMapBtn.addEventListener('change', () => {
+    const file = importMnemeMapBtn.files?.[0];
+    if (file) onImportMnemeMap(file);
+    importMnemeMapBtn.value = '';
+  });
+
   return {
     versionBadge,
     fpsMeter,
@@ -477,6 +506,9 @@ export function setupUI(
     tablesPanel,
     classTableEl,
     gradeTableEl,
+    exportMnemeMapBtn,
+    importMnemeMapBtn,
+    contextLoadMwgBtn,
   };
 }
 

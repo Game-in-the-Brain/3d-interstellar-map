@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import type { Star, CatalogueKey, MapState, AppMode, GenerationParameters, GeneratedStar, GenerationTables, StellarClass, StellarGrade } from './types';
+import type { Star, CatalogueKey, MapState, AppMode, GenerationParameters, GeneratedStar, GenerationTables, StellarClass, StellarGrade, MnemeMapExport } from './types';
 import type { MnemeSystemExport } from './mnemeSystem';
 import { isMnemeSystemExport } from './mnemeSystem';
 import { generateStarMap, DENSITY_PRESETS, buildDefaultClassTable, buildDefaultGradeTable } from './generator';
@@ -17,7 +17,7 @@ import {
   hideContextPanel,
 } from './ui';
 
-const VERSION = '0.1.3';
+const VERSION = '0.2.0';
 
 let scene: THREE.Scene;
 let camera: THREE.PerspectiveCamera;
@@ -39,6 +39,7 @@ let generationTables: GenerationTables = {
   classTable: buildDefaultClassTable(),
   gradeTable: buildDefaultGradeTable(),
 };
+let mapName = 'Untitled Sector';
 let renderMode: RenderMode = 'points';
 let sphereScale = 1.0;
 let brightness = 1.0;
@@ -281,6 +282,14 @@ function showStarContextPanel(star: Star): void {
   ui.contextJson.textContent = JSON.stringify(display, null, 2);
   ui.context2dLink.href = `https://game-in-the-brain.github.io/2d-star-system-map/?starId=${encodeURIComponent(star.id)}`;
   ui.contextExportBtn.onclick = () => exportSingleStar(star);
+  if (ui.contextLoadMwgBtn) {
+    ui.contextLoadMwgBtn.onchange = (e) => {
+      const input = e.target as HTMLInputElement;
+      const f = input.files?.[0];
+      if (f) onLoadMwgJsonForStar(star, f);
+      input.value = '';
+    };
+  }
 
   // MWG link
   const hasMwg = mwgSystems.has(star.id);
@@ -574,6 +583,9 @@ function onModeChange(mode: AppMode): void {
     ui.hygModeBtn.classList.toggle('active-mode', mode === 'hyg');
     ui.generateModeBtn.classList.toggle('active-mode', mode === 'generate');
   }
+  if (mode === 'generate') {
+    renderTables();
+  }
   // Rebuild stars for the new mode
   if (mode === 'generate' && generatedStars.length === 0) {
     // Auto-generate on first switch if empty
@@ -587,6 +599,7 @@ function onGenerate(params: GenerationParameters): void {
   appMode = 'generate';
   generatedStars = generateStarMap(params, generationTables);
   rebuildStars();
+  renderTables();
   if (ui) {
     const hygControls = document.getElementById('hyg-controls');
     const generateControls = document.getElementById('generate-controls');
@@ -689,6 +702,98 @@ function onSaveMap(saveAs: boolean): void {
   URL.revokeObjectURL(url);
 }
 
+function onExportMnemeMap(): void {
+  if (appMode !== 'generate' || generatedStars.length === 0) {
+    alert('No generated map to export. Switch to Generate mode and create a map first.');
+    return;
+  }
+  const exportData: MnemeMapExport = {
+    mnemeFormat: 'starmap-v1',
+    name: mapName,
+    version: VERSION,
+    exportedAt: new Date().toISOString(),
+    parameters: getCurrentGenerationParams(),
+    tables: { classTable: { ...generationTables.classTable }, gradeTable: { ...generationTables.gradeTable } },
+    stars: generatedStars,
+    mwgSystems: Object.fromEntries(mwgSystems),
+  };
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const safeName = mapName.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'sector';
+  a.download = `${safeName}.mneme-map`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function onImportMnemeMap(file: File): Promise<void> {
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text) as MnemeMapExport;
+    if (data.mnemeFormat !== 'starmap-v1') {
+      alert('Invalid .mneme-map file: missing or incorrect mnemeFormat');
+      return;
+    }
+    if (!Array.isArray(data.stars) || data.stars.length === 0) {
+      alert('Invalid .mneme-map file: no stars found');
+      return;
+    }
+    mapName = data.name || file.name.replace(/\.mneme-map$/, '').replace(/\.json$/, '') || 'Imported Sector';
+    generatedStars = data.stars as GeneratedStar[];
+    if (data.tables) {
+      generationTables = {
+        classTable: { ...data.tables.classTable },
+        gradeTable: { ...data.tables.gradeTable },
+      };
+    }
+    mwgSystems.clear();
+    if (data.mwgSystems) {
+      for (const [key, value] of Object.entries(data.mwgSystems)) {
+        mwgSystems.set(key, value);
+      }
+    }
+    appMode = 'generate';
+    if (ui) {
+      const hygControls = document.getElementById('hyg-controls');
+      const generateControls = document.getElementById('generate-controls');
+      if (hygControls) hygControls.style.display = 'none';
+      if (generateControls) generateControls.style.display = 'block';
+      ui.hygModeBtn.classList.remove('active-mode');
+      ui.generateModeBtn.classList.add('active-mode');
+      if (data.parameters) {
+        ui.densitySelect.value = data.parameters.density;
+        ui.passesSlider.value = String(data.parameters.maxPasses);
+        ui.passesValue.textContent = String(data.parameters.maxPasses);
+        ui.distMultSlider.value = String(data.parameters.distanceMultiplier);
+        ui.distMultValue.textContent = parseFloat(String(data.parameters.distanceMultiplier)).toFixed(1);
+        ui.countMultSlider.value = String(data.parameters.starCountMultiplier);
+        ui.countMultValue.textContent = parseFloat(String(data.parameters.starCountMultiplier)).toFixed(1);
+      }
+    }
+    rebuildStars();
+    renderTables();
+    alert(`Imported "${mapName}" with ${generatedStars.length} stars`);
+  } catch {
+    alert('Failed to parse .mneme-map file');
+  }
+}
+
+async function onLoadMwgJsonForStar(star: Star, file: File): Promise<void> {
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (!data.primaryStar || typeof data.primaryStar.class !== 'string') {
+      alert('Invalid MWG system file: expected primaryStar.class');
+      return;
+    }
+    mwgSystems.set(star.id, data as Record<string, unknown>);
+    showStarContextPanel(star);
+  } catch {
+    alert('Failed to parse MWG JSON file');
+  }
+}
+
 async function onLoadMap(file: File): Promise<void> {
   try {
     const text = await file.text();
@@ -766,10 +871,6 @@ function onClear(): void {
 }
 
 function animate(): void {
-  // Render generation tables on first frame if in generate mode
-  if (appMode === 'generate' && ui && ui.classTableEl && ui.classTableEl.children.length === 0) {
-    renderTables();
-  }
   requestAnimationFrame(animate);
   controls.update();
   updateCompass(camera);
@@ -890,7 +991,9 @@ function init(): void {
     onImportStars,
     onClear,
     onModeChange,
-    onGenerate
+    onGenerate,
+    onExportMnemeMap,
+    onImportMnemeMap
   );
 
   // Events

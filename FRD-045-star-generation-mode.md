@@ -274,19 +274,19 @@ When a user saves a 2D map page from the 2D map viewer, it syncs to the 3D map's
 
 ## 10. Acceptance Criteria
 
-- [ ] Toggle between HYG mode and Generate mode
-- [ ] Generate mode shows blank canvas with origin star
-- [ ] Parameter panel: density, pass count, distance, multipliers
-- [ ] Editable class/grade tables
-- [ ] Algorithm produces stars in passes with correct dice rolls
-- [ ] Stars are named hierarchically
-- [ ] Generated stars can be selected, lines drawn between them
-- [ ] Context panel shows generation stats (pass, parent, distance)
-- [ ] Can attach MWG system to any star
-- [ ] Can save/load/import/export generated maps
-- [ ] Export includes MWG data if present
-- [ ] Context panel can open saved 2D map HTML in new tab
-- [ ] Build passes zero TypeScript errors
+- [x] Toggle between HYG mode and Generate mode
+- [x] Generate mode shows blank canvas with origin star
+- [x] Parameter panel: density, pass count, distance, multipliers
+- [x] Editable class/grade tables
+- [x] Algorithm produces stars in passes with correct dice rolls
+- [x] Stars are named hierarchically
+- [x] Generated stars can be selected, lines drawn between them
+- [x] Context panel shows generation stats (pass, parent, distance)
+- [x] Can attach MWG system to any star
+- [x] Can save/load/import/export generated maps
+- [x] Export includes MWG data if present
+- [ ] Context panel can open saved 2D map HTML in new tab *(deferred to FRD-046)*
+- [x] Build passes zero TypeScript errors
 
 ---
 
