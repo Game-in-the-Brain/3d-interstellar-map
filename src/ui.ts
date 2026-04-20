@@ -54,6 +54,8 @@ export interface UIElements {
   exportMnemeMapBtn: HTMLButtonElement;
   importMnemeMapBtn: HTMLInputElement;
   contextLoadMwgBtn: HTMLInputElement;
+  contextMwgPaste: HTMLTextAreaElement;
+  contextLoadMwgPasteBtn: HTMLButtonElement;
 }
 
 function createPanel(id: string, title: string, collapsedDefault: boolean): HTMLElement {
@@ -136,11 +138,11 @@ export function setupUI(
     <!-- Generate Mode Controls -->
     <div id="generate-controls" style="display:${!isHyg ? 'block' : 'none'}">
       <div class="control-row">
-        <label>Density</label>
+        <label title="Controls how many child stars each parent gets on Pass 1, and the base distance roll. Higher density = more stars per parent.">Density</label>
         <select id="density-select" class="ui-select">
-          <option value="sparse">Sparse (1D3, 2D6 ly)</option>
-          <option value="average" selected>Average (1D6, 3D6 ly)</option>
-          <option value="dense">Dense (1D6+2, 4D6 ly)</option>
+          <option value="sparse">Sparse (1D3 children, 2D6 ly)</option>
+          <option value="average" selected>Average (1D6 children, 3D6 ly)</option>
+          <option value="dense">Dense (1D6+2 children, 4D6 ly)</option>
         </select>
       </div>
       <div class="control-row">
@@ -148,8 +150,8 @@ export function setupUI(
         <input id="passes-slider" type="range" min="1" max="5" step="1" value="3" />
       </div>
       <div class="control-row">
-        <label>Distance Multiplier <span id="dist-mult-val">2.0</span></label>
-        <input id="dist-mult-slider" type="range" min="1.5" max="3.0" step="0.5" value="2.0" />
+        <label title="Controls how far each generation pass expands from its parent. Lower = denser clusters, higher = sparser spread.">Distance Multiplier <span id="dist-mult-val">2.0</span></label>
+        <input id="dist-mult-slider" type="range" min="0.5" max="2.0" step="0.5" value="2.0" />
       </div>
       <div class="control-row">
         <label title="1.0 = natural sphere density (volume ∝ r³)">Density <span id="count-mult-val">1.0</span></label>
@@ -262,6 +264,10 @@ export function setupUI(
           <input id="context-load-mwg" type="file" accept=".json" style="display:none" />
         </label>
       </div>
+      <div class="context-paste-row" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+        <textarea id="context-mwg-paste" placeholder="Or paste MWG system JSON here…" rows="4" style="width:100%; font-family:monospace; font-size:11px; resize:vertical; padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(0,0,0,0.3); color:#e5e7eb;"></textarea>
+        <button id="context-load-mwg-paste" class="ui-btn" style="width:100%;">📋 Load from Paste</button>
+      </div>
     </div>
   `;
   app.appendChild(contextPanel);
@@ -289,6 +295,8 @@ export function setupUI(
   const exportMnemeMapBtn = document.getElementById('export-mneme-map-btn') as HTMLButtonElement;
   const importMnemeMapBtn = document.getElementById('import-mneme-map-btn') as HTMLInputElement;
   const contextLoadMwgBtn = document.getElementById('context-load-mwg') as HTMLInputElement;
+  const contextMwgPaste = document.getElementById('context-mwg-paste') as HTMLTextAreaElement;
+  const contextLoadMwgPasteBtn = document.getElementById('context-load-mwg-paste') as HTMLButtonElement;
   const densitySelect = document.getElementById('density-select') as HTMLSelectElement;
   const passesSlider = document.getElementById('passes-slider') as HTMLInputElement;
   const passesValue = document.getElementById('passes-val') as HTMLElement;
@@ -509,6 +517,8 @@ export function setupUI(
     exportMnemeMapBtn,
     importMnemeMapBtn,
     contextLoadMwgBtn,
+    contextMwgPaste,
+    contextLoadMwgPasteBtn,
   };
 }
 

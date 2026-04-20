@@ -364,6 +364,30 @@ function onTouchEnd(event: TouchEvent): void {
 }
 
 function onKeyDown(event: KeyboardEvent): void {
+  // Ctrl+A — select all stars
+  if (event.key === 'a' && event.ctrlKey && !event.shiftKey) {
+    event.preventDefault();
+    if (selectionManager && currentRenderer) {
+      for (let i = 0; i < currentRenderer.count; i++) {
+        const star = currentRenderer['stars'][i];
+        if (!selectionManager.selectedIds.has(star.id)) {
+          selectionManager.selectedIds.add(star.id);
+          selectionManager.orderedSelection.push(star.id);
+        }
+      }
+      selectionManager.updateLines();
+      updateSelectionUI();
+    }
+    return;
+  }
+
+  // Ctrl+Shift+A — deselect all stars
+  if (event.key === 'A' && event.ctrlKey && event.shiftKey) {
+    event.preventDefault();
+    onClear();
+    return;
+  }
+
   if (event.key === 'Escape') {
     onClear();
     if (ui) {
@@ -450,12 +474,24 @@ function exportSingleStar(star: Star): void {
 function onExportStars(): void {
   if (!currentRenderer) return;
   const ids = selectionManager ? Array.from(selectionManager.selectedIds) : [];
+
+  // QA-048: export only works when stars are selected
+  if (ids.length === 0) {
+    alert('No stars selected. Click stars to select, or press Ctrl+A to select all.');
+    return;
+  }
+
   const stars: Star[] = [];
   for (let i = 0; i < currentRenderer.count; i++) {
     const star = currentRenderer['stars'][i];
-    if (ids.length === 0 || ids.includes(star.id)) {
+    if (ids.includes(star.id)) {
       stars.push(star);
     }
+  }
+
+  if (stars.length === 0) {
+    alert('Selected stars not found in current view.');
+    return;
   }
 
   // If any selected stars have MWG data, export in MnemeSystemExport format
