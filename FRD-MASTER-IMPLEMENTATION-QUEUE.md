@@ -1,7 +1,7 @@
 # Master Implementation Queue
 
-**Date:** 2026-04-19  
-**Status:** FRD-044 Complete | FRD-045/046/047 Queued
+**Date:** 2026-04-20  
+**Status:** FRD-044 ✅ | FRD-045 ✅ | FRD-047 M1-M2 ✅ | FRD-047 M3 / FRD-046 Queued
 
 ---
 
@@ -10,40 +10,27 @@
 | FRD | Project | Feature | Status |
 |---|---|---|---|
 | FRD-044 | 3D Map + MWG | Bidirectional star↔system integration | ✅ v0.1.2 / main |
+| FRD-045 | 3D Map | Star Generation Mode (M1-M4) | ✅ v0.2.0 / main |
+| FRD-047 M1 | MWG | Batch data model + migration | ✅ v1.4.0 / main |
+| FRD-047 M2 | MWG | Systems View UI | ✅ v1.4.0 / main |
 
 ---
 
 ## Phase 1: 3D Starmap Star Generation (FRD-045)
 
 **Project:** `3d-interstellar-map`  
-**Target Version:** 0.2.0  
-**Priority:** P0  
-**Estimated Effort:** 3–4 sessions
+**Version:** 0.2.0 ✅ **COMPLETE**
 
 ### Milestones
 
-1. **M1: Mode Toggle** (1 session)
-   - Add HYG / Generate mode toggle in Controls
-   - Generate mode shows blank canvas + parameter panel
-   - Build passes
+1. **M1: Mode Toggle** ✅
+2. **M2: Star Generation Core** ✅
+3. **M3: Parameters & Tables** ✅
+4. **M4: Save/Load/Export** ✅
 
-2. **M2: Star Generation Core** (1 session)
-   - Implement 5D6 class/grade tables (copy from MWG)
-   - Implement d66 → 360° spherical coordinate conversion
-   - Implement pass-based generation algorithm
-   - Origin star + child stars with correct distances
-
-3. **M3: Parameters & Tables** (1 session)
-   - Density presets (Sparse / Average / Dense)
-   - Editable class/grade tables
-   - Save/load generation parameters
-   - Named stars (hierarchical auto-naming)
-
-4. **M4: Save/Load/Export** (1 session)
-   - `.mneme-map` export format
-   - Import `.mneme-map`
-   - Attach MWG JSON to stars
-   - Context panel MWG stats view
+### Post-Completion QA
+- **QA-006:** Recursive Sextet Protocol (`d6666` for XY azimuth) ✅
+- **QA-007:** Square-Cube Law scaling + Z-plane bell curve ✅
 
 ---
 
@@ -51,28 +38,28 @@
 
 **Project:** `Mneme-CE-World-Generator`  
 **Target Version:** 1.4.0  
-**Priority:** P1 (parallel with Phase 1 M3-M4)  
-**Estimated Effort:** 3 sessions
+**Priority:** P1  
+**Estimated Effort:** 3 sessions (2 complete, 1 remaining)
 
 ### Milestones
 
-1. **M1: Data Model + Migration** (1 session)
-   - Add `StarSystemBatch` type
-   - Add `batchId` to `StarSystem`
-   - IndexedDB migration for legacy systems
-   - Batch CRUD functions in `db.ts`
+1. **M1: Data Model + Migration** ✅
+   - `StarSystemBatch` type, `batchId` on `StarSystem`
+   - IndexedDB v2 migration (legacy systems → "Legacy Systems" batch)
+   - Batch CRUD functions
 
-2. **M2: Systems View UI** (1 session)
-   - Replace Settings systems list with batch-aware view
+2. **M2: Systems View UI** ✅
+   - Systems tab in navigation
    - Batch selector, create/rename/delete
    - System list within batch
    - Active batch tracking
+   - Export batch to `.mneme-batch`
 
-3. **M3: Import/Export + 3D Map Flow** (1 session)
-   - Batch import from `.mneme-map` (3D map export)
-   - Batch export to `.mneme-batch`
+3. **M3: Import/Export + 3D Map Flow** 📋 In Progress
    - Progress UI for batch generation
-   - "Export to 3D Map" button
+   - "Export to 3D Map" button (batch → `.mneme-map`)
+   - Import `.mneme-batch` files
+   - Dashboard "Recent Batches" section
 
 ---
 
@@ -86,15 +73,7 @@
 ### Milestones
 
 1. **M1: Save Page + Storage** (1 session)
-   - "Save Page" button downloads self-contained HTML
-   - Sync saved HTML to shared `localStorage` / IndexedDB
-   - 3D map can read and open saved pages
-
 2. **M2: MWG Editor Tab** (1–2 sessions)
-   - New "System Editor" tab
-   - Editable fields for star/world/inhabitants
-   - GM notes text area
-   - Export to DOCX/CSV/JSON (port MWG export code)
 
 ---
 
@@ -102,13 +81,12 @@
 
 ### Shared Storage Contract
 
-All three apps read/write to the same storage namespace:
-
 ```
 localStorage:
   mneme-2dmap-{starId}     → HTML string (2D map page)
   mneme-theme              → 'dark' | 'day' | 'phone'
   mneme-debug-mode         → 'true' | 'false'
+  mneme-active-batch-id    → active batch UUID (MWG)
 
 IndexedDB (3D map):
   starMaps                 → MapState objects
@@ -142,20 +120,18 @@ IndexedDB (MWG):
 
 ## Development Order Recommendation
 
-1. **Start FRD-045 M1-M2** (3D map generation core) — this unlocks the most value
-2. **Parallel: FRD-047 M1** (MWG batch data model) — foundational
-3. **FRD-045 M3-M4** (3D map parameters + save/export)
-4. **FRD-047 M2-M3** (MWG batch UI + 3D map import)
-5. **FRD-046 M1-M2** (2D map save + editor) — polish layer
+1. **FRD-045 M1-M4** ✅ (3D map generation) — COMPLETE
+2. **FRD-047 M1-M2** ✅ (MWG batch model + UI) — COMPLETE
+3. **FRD-047 M3** 📋 (MWG batch import/export polish) — NEXT
+4. **FRD-046 M1-M2** 📋 (2D map save + editor) — queued
 
 ---
 
 ## Notes for Next Session
 
-When the user says "start the next FDR", default to **FRD-045 Phase 1 M1** (3D Map Star Generation — Mode Toggle + Blank Canvas).
+When the user says "start the next task", default to **FRD-047 M3** (MWG Batch Import/Export + 3D Map Flow).
 
 Key files to touch:
-- `3d-interstellar-map/src/main.ts` — mode switching logic
-- `3d-interstellar-map/src/ui.ts` — Generate tab UI
-- `3d-interstellar-map/src/generator.ts` — NEW: star generation algorithm
-- `3d-interstellar-map/src/types.ts` — GeneratedStar type
+- `Mneme-CE-World-Generator/src/components/SystemsView.tsx` — progress UI, export to 3D Map
+- `Mneme-CE-World-Generator/src/App.tsx` — dashboard recent batches
+- `Mneme-CE-World-Generator/src/lib/db.ts` — import `.mneme-batch`

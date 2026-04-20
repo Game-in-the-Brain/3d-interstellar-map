@@ -31,6 +31,8 @@ Build command: `npm run build` (must pass with zero TypeScript errors).
 | [QA-003](#qa-003) | Rendering | Background starfield performance on integrated GPUs | 🟠 Medium | 📋 Open |
 | [QA-004](#qa-004) | UX | Touch tap vs. drag ambiguity on mobile | 🟡 Low | ✅ Closed |
 | [QA-005](#qa-005) | Performance | Browser crash guard for large star selections | 🔴 High | ✅ Closed |
+| [QA-006](#qa-006) | UX (Mobile) | Lock-selection toggle for tablet/phone additive selection | 🟡 Low | ✅ Closed |
+| [QA-007](#qa-007) | Generation | Recursive Sextet Protocol + Z-plane bell curve | 🔴 High | ✅ Closed |
 
 ---
 
@@ -158,6 +160,28 @@ On desktop, multi-select without deselecting is done via Shift-click. On tablets
 - [x] **Locked mode:** tapping any star always **adds** it to the selection; existing selections are never removed
 - [x] The **Clear** button still works in both modes to remove all selections
 - [x] Visual state of the button changes to indicate current mode
+
+---
+
+### QA-007
+
+**Title:** Recursive Sextet Protocol (d6666) + Z-plane Bell Curve  
+**Area:** Generation  
+**Priority:** 🔴 High  
+**Status:** ✅ Closed  
+**File(s):** `src/dice.ts`, `src/generator.ts`, `src/types.ts`
+
+**Description:**  
+Single `d66` per axis provided only 36 outcomes, causing visible clustering in 10° wedges and polar bunching. The generation algorithm needed higher angular resolution and a cosine-weighted elevation distribution.
+
+**Implemented Solution:**
+- [x] **Recursive Sextet Protocol (RSP):** Two nested `d66` rolls for XY azimuth → 1,296 outcomes (~0.278° resolution)
+- [x] **Z-plane Bell Curve:** Single `d66` mapped to 6 cosine-weighted elevation bands
+  - Poles: 2 outcomes each (5.6%) → 0°–30° and 150°–180°
+  - Mid-latitudes: 6 outcomes each (16.7%) → 30°–60° and 120°–150°
+  - Equator: 10 outcomes each (27.8%) → 60°–120°
+- [x] **Square-Cube Law scaling:** Pass 2 uses fixed 7× multiplier (shell volume), not cubed dice roll
+- [x] See `RECURSIVE_SEXTET_PROTOCOL.md` for full mathematical specification
 
 ---
 
