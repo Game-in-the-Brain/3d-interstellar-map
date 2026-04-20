@@ -18,8 +18,10 @@ export interface GeneratedStar extends Star {
   rolls: {
     classRoll: number;
     gradeRoll: number;
-    xyRoll: number;
-    zRoll: number;
+    /** Recursive Sextet Protocol: [d66, d66] → 1,296 outcomes for XY azimuth */
+    xyRoll: [number, number];
+    /** Recursive Sextet Protocol: [d66, d66] → 1,296 outcomes for Z elevation */
+    zRoll: [number, number];
     distanceRoll: number;
   };
   distanceFromParent: number;

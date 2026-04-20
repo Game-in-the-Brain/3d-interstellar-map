@@ -89,8 +89,8 @@ For each star generated in the previous pass:
 
 1. Roll **star count** for this pass (e.g., 1D3)
 2. For each child:
-   a. Roll **d66** → map to 360° XY azimuth
-   b. Roll **d66** → map to 360° Z elevation
+   a. Roll **d6666** → map to 360° XY azimuth (~0.278° resolution)
+   b. Roll **d6666** → map to 360° Z elevation (~0.139° resolution)
    c. Roll **distance** in light years (e.g., 2D6)
    d. Convert spherical → cartesian:
       ```
@@ -264,7 +264,7 @@ When a user saves a 2D map page from the 2D map viewer, it syncs to the 3D map's
 
 | Question | Default Decision |
 |---|---|
-| d66 → 360° mapping | d66 = (tens-1)×6 + (ones) → 1–36. Multiply by 10° for XY. Separate d66 for Z: 1–18 = +elevation, 19–36 = –elevation. Scale to ±90°. |
+| d6666 → 360° mapping | Recursive Sextet Protocol: two nested d66 rolls per axis. Primary d66 selects broad cone (36 sectors), secondary d66 selects sub-direction (36 subdivisions). Total 1,296 outcomes per axis. See `RECURSIVE_SEXTET_PROTOCOL.md`. |
 | Name generation | Origin → Origin-A → Origin-A-1. User can rename any star. |
 | Max stars hard limit | 500 stars (performance guard). |
 | Regenerate single star | Allowed; re-rolls class/grade only, keeps position. |

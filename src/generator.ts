@@ -3,7 +3,7 @@
  * Mirrors MWG's star generation tables and dice notation.
  */
 
-import { rollSum, rollD3, rollD66, d66ToDegrees, d66ToElevation } from './dice';
+import { rollSum, rollD3, rollD6666, d6666ToDegrees, d6666ToElevation } from './dice';
 
 // =====================
 // Stellar Types
@@ -136,8 +136,10 @@ export interface GeneratedStar {
   rolls: {
     classRoll: number;
     gradeRoll: number;
-    xyRoll: number;
-    zRoll: number;
+    /** Recursive Sextet Protocol: [d66, d66] → 1,296 outcomes for XY azimuth */
+    xyRoll: [number, number];
+    /** Recursive Sextet Protocol: [d66, d66] → 1,296 outcomes for Z elevation */
+    zRoll: [number, number];
     distanceRoll: number;
   };
   /** Distance from parent in light years */
@@ -287,8 +289,8 @@ export function generateStarMap(
     rolls: {
       classRoll: originProps.classRoll,
       gradeRoll: originProps.gradeRoll,
-      xyRoll: 0,
-      zRoll: 0,
+      xyRoll: [0, 0],
+      zRoll: [0, 0],
       distanceRoll: 0,
     },
     distanceFromParent: 0,
@@ -306,11 +308,11 @@ export function generateStarMap(
 
       for (let i = 0; i < childCount; i++) {
         const props = generateStarProperties(classTable, gradeTable);
-        const xyRoll = rollD66();
-        const zRoll = rollD66();
+        const xyRoll = rollD6666();
+        const zRoll = rollD6666();
         const distanceRoll = rollDistance(params, pass);
-        const azimuth = d66ToDegrees(xyRoll);
-        const elevation = d66ToElevation(zRoll);
+        const azimuth = d6666ToDegrees(xyRoll);
+        const elevation = d6666ToElevation(zRoll);
         const offset = sphericalToCartesian(azimuth, elevation, distanceRoll);
 
         const star: GeneratedStar = {

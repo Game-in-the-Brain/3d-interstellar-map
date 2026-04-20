@@ -46,3 +46,39 @@ export function d66ToDegrees(d66: number): number {
 export function d66ToElevation(d66: number): number {
   return (d66ToIndex(d66) * 180) / 35 - 90;
 }
+
+// =====================
+// Recursive Sextet Protocol (d6666)
+// =====================
+
+/**
+ * Roll d6666: two nested d66 rolls forming a Recursive Sextet address.
+ * Returns [primary, secondary] where each is a standard d66 (11–66).
+ *
+ * Layer 1 (primary):   36 broad sectors  (10° / ~5° resolution)
+ * Layer 2 (secondary): 36 subdivisions   (~0.28° / ~0.14° resolution)
+ * Total outcomes:      36² = 1,296
+ */
+export function rollD6666(): [number, number] {
+  return [rollD66(), rollD66()];
+}
+
+/** Convert d6666 compound roll to a flat index 0–1295 */
+export function d6666ToIndex(d6666: [number, number]): number {
+  const primary = d66ToIndex(d6666[0]);   // 0–35
+  const secondary = d66ToIndex(d6666[1]); // 0–35
+  return primary * 36 + secondary;        // 0–1295
+}
+
+/** Convert d6666 to azimuth degrees (0–360°) with ~0.278° resolution */
+export function d6666ToDegrees(d6666: [number, number]): number {
+  return (d6666ToIndex(d6666) * 360) / 1296;
+}
+
+/**
+ * Convert d6666 to elevation degrees (-90° to +90°) with ~0.139° resolution.
+ * The 1296 outcomes are spread evenly across the 180° elevation arc.
+ */
+export function d6666ToElevation(d6666: [number, number]): number {
+  return (d6666ToIndex(d6666) * 180) / 1296 - 90;
+}
