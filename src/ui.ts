@@ -32,6 +32,7 @@ export interface UIElements {
   context2dLink: HTMLAnchorElement;
   contextMwgLink: HTMLAnchorElement;
   contextExportBtn: HTMLButtonElement;
+  contextGenerateBtn: HTMLButtonElement;
   contextCloseBtn: HTMLButtonElement;
   suggestion: HTMLElement;
   controlsPanel: HTMLElement;
@@ -259,6 +260,7 @@ export function setupUI(
         <a id="context-2d-link" href="#" target="_blank" rel="noopener noreferrer" class="btn crosslink-btn" style="width:auto">🗺️ Open 2D Map</a>
         <a id="context-mwg-link" href="#" target="_blank" rel="noopener noreferrer" class="btn crosslink-btn" style="width:auto; display:none">🪐 Open in MWG</a>
         <button id="context-export" class="ui-btn">💾 Export this star</button>
+        <button id="context-generate" class="ui-btn" style="background:#2a5a3a; color:#fff;">🎲 Generate World</button>
         <label class="btn crosslink-btn" style="width:auto; cursor:pointer">
           📂 Load MWG JSON
           <input id="context-load-mwg" type="file" accept=".json" style="display:none" />
@@ -332,6 +334,7 @@ export function setupUI(
   const context2dLink = document.getElementById('context-2d-link') as HTMLAnchorElement;
   const contextMwgLink = document.getElementById('context-mwg-link') as HTMLAnchorElement;
   const contextExportBtn = document.getElementById('context-export') as HTMLButtonElement;
+  const contextGenerateBtn = document.getElementById('context-generate') as HTMLButtonElement;
   const contextCloseBtn = document.getElementById('context-close') as HTMLButtonElement;
 
   starSlider.addEventListener('input', () => {
@@ -497,6 +500,7 @@ export function setupUI(
     context2dLink,
     contextMwgLink,
     contextExportBtn,
+    contextGenerateBtn,
     contextCloseBtn,
     suggestion,
     controlsPanel,

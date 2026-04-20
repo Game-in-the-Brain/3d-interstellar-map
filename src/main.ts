@@ -16,6 +16,8 @@ import {
   updateSelectionWarning,
   hideContextPanel,
 } from './ui';
+import { generateStarSystem } from './mwg/lib/generator';
+import { parseSpectralType } from './mwg/lib/spectralParser';
 
 const VERSION = '0.2.0';
 
@@ -305,6 +307,14 @@ function showStarContextPanel(star: Star): void {
     window.open(ui!.context2dLink.href, '_blank');
   };
   ui.contextExportBtn.onclick = () => exportSingleStar(star);
+
+  // FRD-051: Generate World button
+  if (ui.contextGenerateBtn) {
+    const hasMwg = mwgSystems.has(star.id);
+    ui.contextGenerateBtn.style.display = hasMwg ? 'none' : 'inline-block';
+    ui.contextGenerateBtn.onclick = () => generateWorldForStar(star);
+  }
+
   if (ui.contextLoadMwgBtn) {
     ui.contextLoadMwgBtn.onchange = (e) => {
       const input = e.target as HTMLInputElement;
@@ -469,6 +479,50 @@ function exportSingleStar(star: Star): void {
   a.download = `star-${star.id}-${star.name.replace(/\s+/g, '_')}.json`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+/**
+ * FRD-051: Generate a full MWG star system for a star using its spectral type.
+ */
+function generateWorldForStar(star: Star): void {
+  const parsedSpec = parseSpectralType(star.spec);
+  if (!parsedSpec) {
+    alert(`Cannot parse spectral type "${star.spec}" for ${star.name}`);
+    return;
+  }
+
+  try {
+    const system = generateStarSystem({
+      starClass: parsedSpec.stellarClass,
+      starGrade: parsedSpec.grade,
+      mainWorldType: 'random',
+      populated: true,
+    });
+
+    // Enrich with 3D map coordinates and name
+    system.name = star.name || `${parsedSpec.stellarClass}${parsedSpec.grade} System`;
+    system.sourceStarId = star.id;
+    system.x = star.x;
+    system.y = star.y;
+    system.z = star.z;
+
+    // Attach to mwgSystems map
+    mwgSystems.set(star.id, system as unknown as Record<string, unknown>);
+
+    // Persist to localStorage for cross-app access
+    localStorage.setItem(`mwg-system-${star.id}`, JSON.stringify(system));
+
+    // Refresh context panel to show the generated data
+    showStarContextPanel(star);
+
+    // Show success notification
+    if (ui) {
+      ui.contextTitle.textContent = `${star.name} — Generated!`;
+    }
+  } catch (err) {
+    console.error('Generation failed:', err);
+    alert(`Failed to generate world for ${star.name}: ${err instanceof Error ? err.message : String(err)}`);
+  }
 }
 
 function onExportStars(): void {
