@@ -1,8 +1,10 @@
 # 3D Interstellar Map
 
+**Products:** [https://blog.gi7b.org](https://blog.gi7b.org)
+
 A lightweight, offline-capable 3D star map showing Sol and nearby real stars out to 100 parsecs. Built with Three.js + TypeScript + Vite as a Progressive Web App.
 
-**Live URL:** `https://game-in-the-brain.github.io/3d-interstellar-map/`
+**Live URL:** `https://pages.gi7b.org/gi7b/3d-interstellar-map/`
 
 ---
 
